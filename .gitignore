@@ -1,0 +1,9 @@
+node_modules
+# dist  # Git에 포함하여 GitHub 설치 시 바로 사용 가능
+*.log
+.DS_Store
+.env
+.env.local
+coverage
+*.tsbuildinfo
+test-folder

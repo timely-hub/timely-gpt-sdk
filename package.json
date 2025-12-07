@@ -1,0 +1,58 @@
+{
+  "name": "@timely/gpt-sdk",
+  "version": "1.0.0",
+  "description": "Official TypeScript SDK for Timely GPT API",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/timely-hub/timely-gpt-sdk.git"
+  },
+  "homepage": "https://github.com/timely-hub/timely-gpt-sdk#readme",
+  "bugs": {
+    "url": "https://github.com/timely-hub/timely-gpt-sdk/issues"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "generate-models": "tsx scripts/generate-model-types.ts",
+    "prebuild": "npm run generate-models",
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "lint": "eslint src --ext .ts",
+    "test": "jest",
+    "prepare": "npm run build",
+    "postinstall": "npm run build",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "timely",
+    "gpt",
+    "ai",
+    "sdk",
+    "openai",
+    "chat",
+    "streaming"
+  ],
+  "author": {
+    "name": "keisokoo",
+    "email": "keisokoo@gmail.com",
+    "url": "https://github.com/keisokoo"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.19.25",
+    "tsup": "^8.0.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  },
+  "directories": {
+    "example": "examples"
+  }
+}
