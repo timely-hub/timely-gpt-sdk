@@ -1,5 +1,5 @@
 import { Edge, Node } from "@xyflow/react";
-import { WorkflowExecutionState } from "./workflowExecutor";
+import { WorkflowExecutionState } from "./workflow-executor";
 
 export type AIWorkflowNodeKeyNames =
   | "start"

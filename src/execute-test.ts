@@ -1,10 +1,10 @@
-import { workflowData } from "./workflow-data";
+import { workflowData } from "./workflow/workflow-data";
+import { executeWorkflow } from "./workflow/workflow-executor";
 import {
   AIWorkflowEdgeType,
   AIWorkflowNodeType,
   WORKFLOW_CONTEXT,
-} from "./workflow-types";
-import { executeWorkflow } from "./workflowExecutor";
+} from "./workflow/workflow-types";
 
 async function main() {
   const data = workflowData?.data.workflow_data;

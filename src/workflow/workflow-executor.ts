@@ -1,5 +1,5 @@
-import { evaluateCEL, evaluateCondition } from "./resources/evaluate-cel";
-import { resolveInputBindings } from "./resources/resolve-input-bindings";
+import { evaluateCEL, evaluateCondition } from "../resources/evaluate-cel";
+import { resolveInputBindings } from "../resources/resolve-input-bindings";
 import type { AIWorkflowEdgeType, AIWorkflowNodeType } from "./workflow-types";
 type LLMCompletionRequest = Record<string, any>;
 

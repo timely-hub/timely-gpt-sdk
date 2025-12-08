@@ -1,5 +1,5 @@
 import _ from "lodash";
-import { AIWorkflowNodeType } from "../workflow-types";
+import { AIWorkflowNodeType } from "../workflow/workflow-types";
 import { evaluateCEL } from "./evaluate-cel";
 const { set } = _;
 /**
