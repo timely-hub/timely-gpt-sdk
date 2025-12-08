@@ -27,13 +27,68 @@ export interface WorkflowExecutionState {
   globalState: Map<string, any>; // 워크플로우 전역 상태 (state.*)
   logs: ExecutionLog[];
 }
-export type WorkflowContextType = {
-  state: {
+export type ExecuteCodeCallback = (
+  toolName: string,
+  args: Record<string, any>,
+  functionCode: string
+) => Promise<any>;
+
+export interface WorkflowContextOptions {
+  addExecutionLog?: (logs: Omit<ExecutionLog, "timestamp">) => void;
+  executeCodeCallback?: ExecuteCodeCallback;
+}
+
+export class WorkflowContext {
+  private _state: {
     execution: WorkflowExecutionState;
   };
-  addExecutionLog: (logs: Omit<ExecutionLog, "timestamp">) => void;
-  resetExecution: () => void;
-};
+
+  public addExecutionLog: (logs: Omit<ExecutionLog, "timestamp">) => void;
+  public executeCodeCallback?: ExecuteCodeCallback;
+
+  constructor(options?: WorkflowContextOptions) {
+    this._state = {
+      execution: {
+        isExecuting: false,
+        executingNodes: new Set<string>(),
+        completedNodes: new Set<string>(),
+        failedNodes: new Map<string, string>(),
+        nodeOutputs: new Map<string, any>(),
+        globalState: new Map<string, any>(),
+        logs: [],
+      },
+    };
+
+    this.addExecutionLog =
+      options?.addExecutionLog ||
+      ((logs: Omit<ExecutionLog, "timestamp">) => {
+        console.log(`[${logs.nodeType}] ${logs.message}`);
+      });
+
+    this.executeCodeCallback = options?.executeCodeCallback;
+  }
+
+  // Read-only access to state
+  get state(): { execution: WorkflowExecutionState } {
+    return this._state;
+  }
+
+  // Reset execution state
+  resetExecution(): void {
+    this._state.execution = {
+      isExecuting: false,
+      executingNodes: new Set<string>(),
+      completedNodes: new Set<string>(),
+      failedNodes: new Map<string, string>(),
+      nodeOutputs: new Map<string, any>(),
+      globalState: new Map<string, any>(),
+      logs: [],
+    };
+  }
+}
+
+// Legacy type for backward compatibility
+export type WorkflowContextType = WorkflowContext;
 export type AIWorkflowNodeDataCommon = {
   label: string;
   id?: string | null;
@@ -86,36 +141,5 @@ export type AIWorkflowNodeType = WorkflowNodeType<
 
 export type AIWorkflowEdgeType = Edge<Record<string, unknown>, "custom">;
 
-const WORKFLOW_EXECUTION_STATE_DEFAULT: {
-  execution: WorkflowExecutionState;
-} = {
-  execution: {
-    isExecuting: false,
-    executingNodes: new Set(),
-    completedNodes: new Set(),
-    failedNodes: new Map(),
-    nodeOutputs: new Map(),
-    globalState: new Map(),
-    logs: [],
-  },
-};
-
-export const WORKFLOW_CONTEXT = {
-  state: {
-    ...WORKFLOW_EXECUTION_STATE_DEFAULT,
-  },
-  addExecutionLog: (logs: Omit<ExecutionLog, "timestamp">) => {
-    console.log(`[${logs.nodeType}] ${logs.message}`);
-  },
-  resetExecution: () => {
-    WORKFLOW_CONTEXT.state.execution = {
-      isExecuting: false,
-      executingNodes: new Set(),
-      completedNodes: new Set(),
-      failedNodes: new Map(),
-      nodeOutputs: new Map(),
-      globalState: new Map(),
-      logs: [],
-    };
-  },
-};
+// Default workflow context instance
+export const WORKFLOW_CONTEXT = new WorkflowContext();

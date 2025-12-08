@@ -94,16 +94,23 @@ async function executeToolNode(
 
     if (nodeData.type === "custom") {
       const functionCode = nodeData.tool.function_body ?? "";
-      const executionResult = await executeCode(functionCode, inputs);
+      const toolName = nodeData.tool.name || nodeData.tool.id || "unknown";
 
-      // Custom tool 실행 결과 검증
-      if (!executionResult.success) {
-        throw new Error(
-          executionResult.error || "Custom tool 실행 실패 (알 수 없는 오류)"
-        );
+      // context에서 콜백을 가져와서 사용, 없으면 기본 executeCode 사용
+      if (context.executeCodeCallback) {
+        result = await context.executeCodeCallback(toolName, inputs, functionCode);
+      } else {
+        const executionResult = await executeCode(functionCode, inputs);
+
+        // Custom tool 실행 결과 검증
+        if (!executionResult.success) {
+          throw new Error(
+            executionResult.error || "Custom tool 실행 실패 (알 수 없는 오류)"
+          );
+        }
+
+        result = executionResult.result ?? executionResult;
       }
-
-      result = executionResult.result ?? executionResult;
     } else if (nodeData.type === "built-in") {
       // Built-in tool 실행을 위한 fetch 직접 호출
       // (워크플로우 실행 컨텍스트에서는 React Hook을 사용할 수 없음)
