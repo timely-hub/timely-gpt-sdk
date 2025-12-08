@@ -48,11 +48,18 @@
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^20.19.25",
+    "@xyflow/react": "^12.10.0",
     "tsup": "^8.0.1",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   },
   "directories": {
     "example": "examples"
+  },
+  "dependencies": {
+    "@marcbachmann/cel-js": "^6.3.3",
+    "@types/lodash": "^4.17.21",
+    "cel-js": "^0.8.2",
+    "lodash": "^4.17.21"
   }
 }
