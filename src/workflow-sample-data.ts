@@ -2,11 +2,11 @@ export const workflowData = {
   success: true,
   status: 200,
   data: {
-    id: "01KBYTFNCSB108513ZTSC84FNX",
+    id: "01KBYX3K0NTPCKMJSDNDM3V9Z3",
     workflow_id: "01KBQ01TPRCPC6YVEMMXE35PY4",
     user_id: "14",
     space_id: "bfbc49b7-f854-4b80-a698-849c1883c6fb",
-    version: 3,
+    version: 4,
     base_version: null,
     status: "PUBLISHED",
     is_production: true,
@@ -96,8 +96,8 @@ export const workflowData = {
             },
           },
           position: {
-            x: 280,
-            y: 90,
+            x: 390,
+            y: 290,
           },
           measured: {
             width: 200,
@@ -127,15 +127,76 @@ export const workflowData = {
           selected: false,
           dragging: false,
         },
+        {
+          id: "01KBYX3PH8YGJSJFKNKYVYCHRV",
+          type: "tool",
+          data: {
+            label: "TOOL_2",
+            inputBindings: {
+              a: "4",
+              b: "2",
+            },
+            nodeData: {
+              tool: {
+                id: "01KBYX3BBEMCJD0QMHH13BF1HF",
+                user_id: "14",
+                space_id: "bfbc49b7-f854-4b80-a698-849c1883c6fb",
+                name: "add_numbers",
+                description:
+                  "두 개의 숫자를 입력받아 더한 결과를 반환하는 함수",
+                schema: {
+                  type: "object",
+                  properties: {
+                    a: {
+                      type: "number",
+                      description: "더할 첫 번째 숫자",
+                    },
+                    b: {
+                      type: "number",
+                      description: "더할 두 번째 숫자",
+                    },
+                  },
+                  required: ["a", "b"],
+                },
+                function_body:
+                  "\nconst { a, b } = params;\n\n// 입력값 검증\nif (typeof a !== 'number' || typeof b !== 'number') {\n  throw new Error('a와 b는 모두 숫자여야 합니다');\n}\n\n// 두 수를 더함\nconst result = a + b;\n\n// 결과 반환\nreturn {\n  a: a,\n  b: b,\n  sum: result\n};\n",
+                created_at: "2025-12-08T11:56:08.430Z",
+                updated_at: "2025-12-08T11:56:08.430Z",
+                response_schema: {
+                  type: "object",
+                  properties: {
+                    a: {
+                      type: "number",
+                      description: "입력받은 첫 번째 숫자",
+                    },
+                    b: {
+                      type: "number",
+                      description: "입력받은 두 번째 숫자",
+                    },
+                    sum: {
+                      type: "number",
+                      description: "두 숫자의 합 (a + b)",
+                    },
+                  },
+                  required: ["a", "b", "sum"],
+                },
+              },
+              type: "custom",
+            },
+          },
+          position: {
+            x: 130,
+            y: 250,
+          },
+          measured: {
+            width: 200,
+            height: 91,
+          },
+          selected: true,
+          dragging: false,
+        },
       ],
       edges: [
-        {
-          source: "1",
-          target: "01KBXP6J2MTBC64Y60MKM9504J",
-          type: "custom",
-          animated: true,
-          id: "xy-edge__1-01KBXP6J2MTBC64Y60MKM9504J",
-        },
         {
           source: "01KBXP6J2MTBC64Y60MKM9504J",
           target: "01KBXP7DVPDZH9RD4QQHSEK8BK",
@@ -143,16 +204,30 @@ export const workflowData = {
           animated: true,
           id: "xy-edge__01KBXP6J2MTBC64Y60MKM9504J-01KBXP7DVPDZH9RD4QQHSEK8BK",
         },
+        {
+          source: "1",
+          target: "01KBYX3PH8YGJSJFKNKYVYCHRV",
+          type: "custom",
+          animated: true,
+          id: "xy-edge__1-01KBYX3PH8YGJSJFKNKYVYCHRV",
+        },
+        {
+          source: "01KBYX3PH8YGJSJFKNKYVYCHRV",
+          target: "01KBXP6J2MTBC64Y60MKM9504J",
+          type: "custom",
+          animated: true,
+          id: "xy-edge__01KBYX3PH8YGJSJFKNKYVYCHRV-01KBXP6J2MTBC64Y60MKM9504J",
+        },
       ],
       viewport: {
-        x: 193,
-        y: 120,
+        x: 276,
+        y: 248,
         zoom: 1,
       },
     },
     archived_at: null,
-    published_at: "2025-12-08T11:10:33.005Z",
-    created_at: "2025-12-08T11:10:26.203Z",
-    updated_at: "2025-12-08T11:10:33.006Z",
+    published_at: "2025-12-08T11:57:57.142Z",
+    created_at: "2025-12-08T11:56:16.278Z",
+    updated_at: "2025-12-08T11:57:57.142Z",
   },
 };

@@ -1,4 +1,4 @@
-import { workflowData } from "./workflow/workflow-data";
+import { workflowData } from "./workflow-sample-data";
 import { executeWorkflow } from "./workflow/workflow-executor";
 import {
   AIWorkflowEdgeType,

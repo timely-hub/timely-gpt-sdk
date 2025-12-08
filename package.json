@@ -57,9 +57,6 @@
     "example": "examples"
   },
   "dependencies": {
-    "@marcbachmann/cel-js": "^6.3.3",
-    "@types/lodash": "^4.17.21",
-    "cel-js": "^0.8.2",
-    "lodash": "^4.17.21"
+    "@marcbachmann/cel-js": "^6.3.3"
   }
 }

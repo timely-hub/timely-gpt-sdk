@@ -1,57 +1,35 @@
-import { evaluateCEL, evaluateCondition } from "../resources/evaluate-cel";
-import { resolveInputBindings } from "../resources/resolve-input-bindings";
-import type { AIWorkflowEdgeType, AIWorkflowNodeType } from "./workflow-types";
+import { evaluateCEL, evaluateCondition } from "./evaluate-cel";
+import { resolveInputBindings } from "./resolve-input-bindings";
+import type {
+  AIWorkflowEdgeType,
+  AIWorkflowNodeType,
+  WorkflowContextType,
+} from "./workflow-types";
 type LLMCompletionRequest = Record<string, any>;
-
-export interface ExecutionLog {
-  nodeId: string;
-  nodeType: string;
-  type: "start" | "complete" | "error" | "info" | "warning";
-  message: string;
-  timestamp: number;
-  data?: any;
-}
-export interface WorkflowExecutionState {
-  isExecuting: boolean;
-  executingNodes: Set<string>;
-  completedNodes: Set<string>;
-  failedNodes: Map<string, string>;
-  nodeOutputs: Map<string, any>;
-  globalState: Map<string, any>; // 워크플로우 전역 상태 (state.*)
-  logs: ExecutionLog[];
-}
-type WorkflowContextType = {
-  state: {
-    execution: WorkflowExecutionState;
-  };
-  addExecutionLog: (logs: Record<string, any>) => void;
-  resetExecution: () => void;
-};
 
 // Tool 노드 실행
 const { executeCode } = {
-  executeCode: (code: string, params: Record<string, any>): Promise<any> => {
-    const wrappedCode = `
-    const params = ${JSON.stringify(params)};
-    ${code}
-  `;
+  executeCode: async (
+    code: string,
+    params: Record<string, any>
+  ): Promise<{ success: boolean; result: any; error: string | null }> => {
     // TODO: 웹에서 실행할경우 worker에서, node 실행은 sdk 개발자에게 실행할 수 있도록 해야함.
-    const func = new Function("params", wrappedCode);
-    return func()
-      .then((result: any) => {
-        return {
-          success: true,
-          result,
-          error: null,
-        };
-      })
-      .catch((error: any) => {
-        return {
-          success: false,
-          result: null,
-          error: error.message,
-        };
-      });
+    try {
+      const func = new Function("params", code);
+      const result = await Promise.resolve(func(params));
+      console.log("result >>>", result);
+      return {
+        success: true,
+        result,
+        error: null,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        result: null,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
   },
 };
 /**

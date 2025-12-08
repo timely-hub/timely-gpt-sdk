@@ -1,5 +1,4 @@
 import { Edge, Node } from "@xyflow/react";
-import { WorkflowExecutionState } from "./workflow-executor";
 
 export type AIWorkflowNodeKeyNames =
   | "start"
@@ -11,6 +10,30 @@ export type AIWorkflowNodeKeyNames =
   | "condition"
   | "loop";
 
+export interface ExecutionLog {
+  nodeId: string;
+  nodeType: string;
+  type: "start" | "complete" | "error" | "info" | "warning";
+  message: string;
+  timestamp: number;
+  data?: any;
+}
+export interface WorkflowExecutionState {
+  isExecuting: boolean;
+  executingNodes: Set<string>;
+  completedNodes: Set<string>;
+  failedNodes: Map<string, string>;
+  nodeOutputs: Map<string, any>;
+  globalState: Map<string, any>; // 워크플로우 전역 상태 (state.*)
+  logs: ExecutionLog[];
+}
+export type WorkflowContextType = {
+  state: {
+    execution: WorkflowExecutionState;
+  };
+  addExecutionLog: (logs: Omit<ExecutionLog, "timestamp">) => void;
+  resetExecution: () => void;
+};
 export type AIWorkflowNodeDataCommon = {
   label: string;
   id?: string | null;
@@ -81,8 +104,8 @@ export const WORKFLOW_CONTEXT = {
   state: {
     ...WORKFLOW_EXECUTION_STATE_DEFAULT,
   },
-  addExecutionLog: (logs: Record<string, any>) => {
-    console.log(logs);
+  addExecutionLog: (logs: Omit<ExecutionLog, "timestamp">) => {
+    console.log(`[${logs.nodeType}] ${logs.message}`);
   },
   resetExecution: () => {
     WORKFLOW_CONTEXT.state.execution = {

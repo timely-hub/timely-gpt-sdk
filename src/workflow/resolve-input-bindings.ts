@@ -1,7 +1,6 @@
-import _ from "lodash";
-import { AIWorkflowNodeType } from "../workflow/workflow-types";
+import { setPath } from "../utils/object";
 import { evaluateCEL } from "./evaluate-cel";
-const { set } = _;
+import { AIWorkflowNodeType } from "./workflow-types";
 /**
  * CEL 평가를 위한 컨텍스트 생성
  */
@@ -56,7 +55,7 @@ export function resolveInputBindings(
       const value = evaluateCEL(bindingPath, celContext);
 
       // 타겟 키에 값 설정
-      set(resolved, targetKey, value);
+      setPath(resolved, targetKey, value);
 
       console.log(`[바인딩 해석 성공] ${bindingPath} → ${targetKey}`, value);
     } catch (error) {
