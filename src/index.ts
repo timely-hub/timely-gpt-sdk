@@ -1,8 +1,9 @@
+import "dotenv/config";
 import { APIClient } from "./core/api-client";
 import { AuthManager } from "./core/auth";
 import { Chat } from "./resources/chat";
+import { Workflow } from "./resources/workflow";
 import type { TimelyGPTClientOptions } from "./types";
-
 export { APIError } from "./core/api-client";
 export { Stream } from "./core/stream";
 export * from "./types";
@@ -10,6 +11,18 @@ export * from "./types";
 // Export generated model types (optional - will be available after running generate-models)
 export { AVAILABLE_MODELS } from "./generated/models";
 export type { ModelType } from "./generated/models";
+
+// Export workflow types and executor
+export { executeWorkflow } from "./workflow/workflow-executor";
+export { WorkflowContext } from "./workflow/workflow-types";
+export type {
+  AIWorkflowEdgeType,
+  AIWorkflowNodeType,
+  ExecuteCodeCallback,
+  ExecutionLog,
+  WorkflowContextOptions,
+  WorkflowExecutionState,
+} from "./workflow/workflow-types";
 
 /**
  * Timely GPT API 클라이언트
@@ -50,6 +63,8 @@ export type { ModelType } from "./generated/models";
 export class TimelyGPTClient {
   /** 채팅 완성 API */
   public chat: Chat;
+  /** 워크플로우 API */
+  public workflow: Workflow;
   private authManager: AuthManager;
 
   /**
@@ -90,6 +105,7 @@ export class TimelyGPTClient {
     const apiClient = new APIClient(baseURL);
 
     this.chat = new Chat(apiClient, this.authManager);
+    this.workflow = new Workflow(apiClient, this.authManager, baseURL);
   }
 }
 

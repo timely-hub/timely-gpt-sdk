@@ -1,3 +1,5 @@
+import { Node, Edge } from '@xyflow/react';
+
 /**
  * API 요청 실패 시 발생하는 오류
  *
@@ -463,6 +465,135 @@ declare class Chat {
     constructor(apiClient: APIClient, authManager: AuthManager);
 }
 
+interface ExecutionLog {
+    nodeId: string;
+    nodeType: string;
+    type: "start" | "complete" | "error" | "info" | "warning";
+    message: string;
+    timestamp: number;
+    data?: any;
+}
+interface WorkflowExecutionState {
+    isExecuting: boolean;
+    executingNodes: Set<string>;
+    completedNodes: Set<string>;
+    failedNodes: Map<string, string>;
+    nodeOutputs: Map<string, any>;
+    globalState: Map<string, any>;
+    logs: ExecutionLog[];
+}
+type ExecuteCodeCallback = (toolName: string, args: Record<string, any>, functionCode: string) => Promise<any>;
+interface WorkflowContextOptions {
+    addExecutionLog?: (logs: Omit<ExecutionLog, "timestamp">) => void;
+    executeCodeCallback?: ExecuteCodeCallback;
+    baseURL?: string;
+}
+declare class WorkflowContext {
+    private _state;
+    addExecutionLog: (logs: Omit<ExecutionLog, "timestamp">) => void;
+    executeCodeCallback?: ExecuteCodeCallback;
+    baseURL?: string;
+    constructor(options?: WorkflowContextOptions);
+    get state(): {
+        execution: WorkflowExecutionState;
+    };
+    resetExecution(): void;
+}
+type WorkflowContextType = WorkflowContext;
+type AIWorkflowNodeDataCommon = {
+    label: string;
+    id?: string | null;
+    inputBindings?: Record<string, string>;
+};
+type AIWorkflowResponseData = {
+    id: string;
+    workflow_id: string;
+    user_id: string;
+    space_id: string;
+    version: number;
+    base_version: number | null;
+    status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+    is_production: boolean;
+    name: string | null;
+    description: string | null;
+    workflow_data: {
+        nodes: {
+            [key: string]: unknown;
+        }[];
+        edges: {
+            [key: string]: unknown;
+        }[];
+        viewport: {
+            x: number;
+            y: number;
+            zoom: number;
+        };
+    };
+    archived_at: string | null;
+    published_at: string | null;
+    created_at: string;
+    updated_at: string;
+};
+type WorkflowNodeType<NodeType extends string | undefined = string | undefined, NodeData extends Record<string, unknown> = Record<string, unknown>> = Node<NodeData & AIWorkflowNodeDataCommon, NodeType>;
+type AIWorkflowNodeType = WorkflowNodeType<string, {
+    data: {
+        nodeData: {
+            [key: string]: any;
+        };
+    };
+} & Record<string, any>>;
+type AIWorkflowEdgeType = Edge<Record<string, unknown>, "custom">;
+
+interface WorkflowResponse {
+    success: boolean;
+    status: number;
+    data: AIWorkflowResponseData;
+}
+interface RunWorkflowOptions {
+    addExecutionLog?: WorkflowContextOptions["addExecutionLog"];
+    executeCodeCallback?: WorkflowContextOptions["executeCodeCallback"];
+}
+declare class Workflow {
+    private apiClient;
+    private authManager;
+    private baseURL;
+    constructor(apiClient: APIClient, authManager: AuthManager, baseURL: string);
+    /**
+     * Fetch workflow data by workflow ID
+     *
+     * @param workflowId - Workflow ID to fetch
+     * @returns Workflow data response
+     */
+    fetch(workflowId: string): Promise<WorkflowResponse>;
+    /**
+     * Run a workflow by fetching its data and executing it
+     *
+     * @param workflowId - Workflow ID to run
+     * @param initialInputs - Initial input values for the workflow
+     * @param options - Optional execution callbacks
+     * @returns Workflow execution result
+     *
+     * @example
+     * ```typescript
+     * const result = await client.workflow.run('workflow_123', {
+     *   startMessage: 'Hello world'
+     * }, {
+     *   addExecutionLog: (logs) => console.log(logs),
+     *   executeCodeCallback: async (toolName, args, code) => {
+     *     // Custom code execution logic
+     *     return customExecute(code, args);
+     *   }
+     * });
+     * ```
+     */
+    run(workflowId: string, initialInputs: Record<string, any>, options?: RunWorkflowOptions): Promise<any>;
+}
+
+/**
+ * 워크플로우 실행 엔진
+ */
+declare function executeWorkflow(nodes: AIWorkflowNodeType[], edges: AIWorkflowEdgeType[], context: WorkflowContextType, initialInputs?: Record<string, any>): Promise<any>;
+
 /**
  * Timely GPT API 클라이언트
  *
@@ -502,6 +633,8 @@ declare class Chat {
 declare class TimelyGPTClient {
     /** 채팅 완성 API */
     chat: Chat;
+    /** 워크플로우 API */
+    workflow: Workflow;
     private authManager;
     /**
      * TimelyGPTClient 인스턴스를 생성합니다.
@@ -527,4 +660,4 @@ declare class TimelyGPTClient {
     constructor(options?: TimelyGPTClientOptions);
 }
 
-export { APIError, AVAILABLE_MODELS, type AuthResponse, type ChatModelNode, type ChatType, type CompletionRequest, type CompletionResponse, type Configurable, type ErrorResponse, type Message, type MessageRole, type ModelType, Stream, type StreamEvent, type StreamEventType, TimelyGPTClient, type TimelyGPTClientOptions, type ToolCall, type UserLocation, TimelyGPTClient as default };
+export { type AIWorkflowEdgeType, type AIWorkflowNodeType, APIError, AVAILABLE_MODELS, type AuthResponse, type ChatModelNode, type ChatType, type CompletionRequest, type CompletionResponse, type Configurable, type ErrorResponse, type ExecuteCodeCallback, type ExecutionLog, type Message, type MessageRole, type ModelType, Stream, type StreamEvent, type StreamEventType, TimelyGPTClient, type TimelyGPTClientOptions, type ToolCall, type UserLocation, WorkflowContext, type WorkflowContextOptions, type WorkflowExecutionState, TimelyGPTClient as default, executeWorkflow };

@@ -117,8 +117,7 @@ async function executeToolNode(
     } else if (nodeData.type === "built-in") {
       // Built-in tool 실행을 위한 fetch 직접 호출
       const response = await fetch(
-        // TODO: 추후 hello-api 주소로 변경
-        `${process.env.TIMELY_BASE_URL}/api-ai/v2/built-in-tool-node/${nodeData.tool.id}/invoke`,
+        `${context.baseURL}/built-in-tool-node/${nodeData.tool.id}/invoke`,
         {
           method: "POST",
           headers: {
@@ -239,23 +238,21 @@ async function executeLlmNode(
     // 재귀적으로 LLM 호출 (tool_call_required 처리)
     const processNonStream = async (
       requestBody: LLMCompletionRequest,
-      checkpointId: string | null = null
+      checkpointId: string | null = null,
+      baseURL: string
     ): Promise<void> => {
-      const response = await fetch(
-        `${process.env.TIMELY_BASE_URL}/api-ai/v2/llm-completion`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer master`,
-          },
-          body: JSON.stringify({
-            ...requestBody,
-            checkpoint_id: checkpointId,
-            stream: false,
-          }),
-        }
-      );
+      const response = await fetch(`${baseURL}/api-ai/v2/llm-completion`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer master`,
+        },
+        body: JSON.stringify({
+          ...requestBody,
+          checkpoint_id: checkpointId,
+          stream: false,
+        }),
+      });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -321,7 +318,7 @@ async function executeLlmNode(
               }
             } else if (tool.type === "built-in") {
               const builtInResponse = await fetch(
-                `${process.env.TIMELY_BASE_URL}/api-ai/v2/built-in-tool-node/${tool.id}/invoke`,
+                `${context.baseURL}/built-in-tool-node/${tool.id}/invoke`,
                 {
                   method: "POST",
                   headers: {
@@ -365,7 +362,8 @@ async function executeLlmNode(
             ...requestBody,
             messages: toolResults,
           },
-          responseData.configurable.checkpoint_id
+          responseData.configurable.checkpoint_id,
+          context.baseURL || ""
         );
       } else if (responseData.type === "error") {
         throw new Error(responseData.error);
@@ -398,7 +396,7 @@ async function executeLlmNode(
       ],
     };
 
-    await processNonStream(initialRequest);
+    await processNonStream(initialRequest, null, context.baseURL || "");
 
     // JSON 모드일 때는 parsed 결과를, TEXT 모드일 때는 메시지 결과를 반환
 

@@ -42,13 +42,6 @@ export function resolveInputBindings(
   // CEL 컨텍스트 생성
   const celContext = createCELContext(nodeOutputs, allNodes, globalState);
 
-  console.log("[resolveInputBindings] 입력 바인딩:", inputBindings);
-  console.log("[resolveInputBindings] CEL 컨텍스트:", celContext);
-  console.log(
-    "[resolveInputBindings] nodeOutputs Map:",
-    Array.from(nodeOutputs.entries()).map(([id, output]) => ({ id, output }))
-  );
-
   for (const [targetKey, bindingPath] of Object.entries(inputBindings)) {
     try {
       // CEL로 바인딩 평가 (단순 경로 접근부터 복잡한 표현식까지 모두 처리)
@@ -56,16 +49,12 @@ export function resolveInputBindings(
 
       // 타겟 키에 값 설정
       setPath(resolved, targetKey, value);
-
-      console.log(`[바인딩 해석 성공] ${bindingPath} → ${targetKey}`, value);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.warn(`[바인딩 해석 실패] ${bindingPath}: ${message}`);
       continue;
     }
   }
-
-  console.log("[resolveInputBindings] 최종 결과:", resolved);
 
   return resolved;
 }
