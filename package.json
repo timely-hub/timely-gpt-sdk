@@ -57,6 +57,7 @@
     "example": "examples"
   },
   "dependencies": {
-    "@marcbachmann/cel-js": "^6.3.3"
+    "@marcbachmann/cel-js": "^6.3.3",
+    "dotenv": "^17.2.3"
   }
 }

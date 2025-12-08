@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { evaluateCEL, evaluateCondition } from "./evaluate-cel";
 import { resolveInputBindings } from "./resolve-input-bindings";
 import type {
@@ -117,7 +118,7 @@ async function executeToolNode(
       // Built-in tool 실행을 위한 fetch 직접 호출
       const response = await fetch(
         // TODO: 추후 hello-api 주소로 변경
-        `http://localhost:8000/api-ai/v2/built-in-tool-node/${nodeData.tool.id}/invoke`,
+        `${process.env.TIMELY_BASE_URL}/api-ai/v2/built-in-tool-node/${nodeData.tool.id}/invoke`,
         {
           method: "POST",
           headers: {
@@ -241,7 +242,7 @@ async function executeLlmNode(
       checkpointId: string | null = null
     ): Promise<void> => {
       const response = await fetch(
-        `http://localhost:8000/api-ai/v2/llm-completion`,
+        `${process.env.TIMELY_BASE_URL}/api-ai/v2/llm-completion`,
         {
           method: "POST",
           headers: {
@@ -320,7 +321,7 @@ async function executeLlmNode(
               }
             } else if (tool.type === "built-in") {
               const builtInResponse = await fetch(
-                `http://localhost:8000/api-ai/v2/built-in-tool-node/${tool.id}/invoke`,
+                `${process.env.TIMELY_BASE_URL}/api-ai/v2/built-in-tool-node/${tool.id}/invoke`,
                 {
                   method: "POST",
                   headers: {
