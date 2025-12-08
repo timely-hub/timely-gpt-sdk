@@ -13,11 +13,9 @@ const { executeCode } = {
     code: string,
     params: Record<string, any>
   ): Promise<{ success: boolean; result: any; error: string | null }> => {
-    // TODO: 웹에서 실행할경우 worker에서, node 실행은 sdk 개발자에게 실행할 수 있도록 해야함.
     try {
       const func = new Function("params", code);
       const result = await Promise.resolve(func(params));
-      console.log("result >>>", result);
       return {
         success: true,
         result,
@@ -98,7 +96,11 @@ async function executeToolNode(
 
       // context에서 콜백을 가져와서 사용, 없으면 기본 executeCode 사용
       if (context.executeCodeCallback) {
-        result = await context.executeCodeCallback(toolName, inputs, functionCode);
+        result = await context.executeCodeCallback(
+          toolName,
+          inputs,
+          functionCode
+        );
       } else {
         const executionResult = await executeCode(functionCode, inputs);
 
@@ -113,8 +115,6 @@ async function executeToolNode(
       }
     } else if (nodeData.type === "built-in") {
       // Built-in tool 실행을 위한 fetch 직접 호출
-      // (워크플로우 실행 컨텍스트에서는 React Hook을 사용할 수 없음)
-      console.log("inputs >>>", inputs);
       const response = await fetch(
         // TODO: 추후 hello-api 주소로 변경
         `http://localhost:8000/api-ai/v2/built-in-tool-node/${nodeData.tool.id}/invoke`,
@@ -141,7 +141,6 @@ async function executeToolNode(
       if (data.error) {
         throw new Error(`Built-in tool 실행 실패: ${data.error}`);
       }
-      console.log("data >>>", data);
 
       const output = data.output;
       result = output;
@@ -265,7 +264,6 @@ async function executeLlmNode(
       }
 
       const responseData = await response.json();
-      console.log("@@@", responseData);
 
       // API 응답에서 에러 체크
       if (responseData.error) {
