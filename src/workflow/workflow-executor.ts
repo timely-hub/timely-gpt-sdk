@@ -414,10 +414,10 @@ async function executeLlmNode(
     } else {
       // TEXT 모드: 기존 형식 유지
       result = {
-        messages: allMessages,
-        lastMessage:
-          allMessages.length > 0 ? allMessages[allMessages.length - 1] : null,
-        timestamp: Date.now(),
+        response:
+          allMessages.length > 0
+            ? allMessages[allMessages.length - 1].content
+            : null,
       };
     }
 
