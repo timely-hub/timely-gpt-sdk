@@ -16,6 +16,7 @@ Timely GPT API를 위한 공식 TypeScript/JavaScript SDK입니다. OpenAI SDK�
 - 🔐 **자동 인증** - JWT 토큰 관리 자동 처리
 - 📦 **제로 의존성** - 네이티브 fetch API만 사용
 - 🛠️ **도구 호출** - 내장 및 커스텀 도구 지원
+- ⚡ **워크플로우 실행** - Timely GPT에서 생성한 에이전트 워크플로우 실행 및 관리
 
 ## 설치
 
@@ -302,6 +303,60 @@ type StreamEvent =
   | { type: 'error'; error: string };
 ```
 
+## 워크플로우
+
+워크플로우를 사용하면 복잡한 AI 작업을 시각적으로 구성하고 실행할 수 있습니다.
+
+### 워크플로우 목록 조회
+
+```typescript
+const workflows = await client.workflow.list();
+console.log(`Total: ${workflows.data.total}`);
+
+workflows.data.workflows.forEach(workflow => {
+  console.log(`${workflow.name} (${workflow.workflow_id})`);
+});
+```
+
+### 워크플로우 실행 시작 파라미터 확인
+- 워크플로우 실행 시작 파라미터는 워크플로우 생성 시 설정한 START 노드의 파라미터를 반환합니다.
+
+```typescript
+const params = await client.workflow.getParams('workflow_id');
+console.log('Schema:', params.schema);
+console.log('Type:', params.type);
+```
+
+### 커스텀 도구 정보 추출
+- 워크플로우 생성 시 설정한 커스텀 도구가 있다면, 커스텀 도구의 정보를 반환합니다.
+- 워크플로우 실행시 도구 실행을 콜백으로 전달할 수 있습니다.
+
+```typescript
+const customTools = await client.workflow.getCustomTools('workflow_id');
+
+customTools.forEach(tool => {
+  console.log(`Tool: ${tool.toolName}`);
+  console.log('Request Schema:', tool.requestSchema);
+  console.log('Response Schema:', tool.responseSchema);
+});
+```
+
+### 워크플로우 실행
+
+```typescript
+const result = await client.workflow.run(
+  'workflow_id',
+  { input: 'your input data' }, // 워크플로우 실행 시작 파라미터
+  {
+    addExecutionLog: (log) => console.log(log.message), // 워크플로우 실행 로그
+    executeCodeCallback: async (toolName, args, code) => { // 커스텀 도구 실행 콜백
+      // Custom code execution
+      return eval(code);
+    }
+  }
+);
+```
+
 ## 예제
 
 [examples](./examples) 디렉토리를 참고하세요:
@@ -310,6 +365,7 @@ type StreamEvent =
 - **[streaming.ts](./examples/streaming.ts)** - 간단한 스트리밍 예제
 - **[streaming-advanced.ts](./examples/streaming-advanced.ts)** - 이벤트 핸들러를 사용한 고급 스트리밍
 - **[custom-model.ts](./examples/custom-model.ts)** - 커스텀 모델 설정
+- **[workflow-basic.ts](./examples/workflow-basic.ts)** - 워크플로우 목록 및 실행
 
 ### 예제 실행하기
 
