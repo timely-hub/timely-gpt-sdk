@@ -88,6 +88,7 @@ export class Workflow {
       addExecutionLog: options?.addExecutionLog,
       executeCodeCallback: options?.executeCodeCallback,
       baseURL: this.baseURL,
+      getAccessToken: () => this.authManager.getAccessToken(),
     });
 
     // Execute workflow

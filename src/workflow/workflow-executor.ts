@@ -116,13 +116,16 @@ async function executeToolNode(
       }
     } else if (nodeData.type === "built-in") {
       // Built-in tool 실행을 위한 fetch 직접 호출
+      const accessToken = context.getAccessToken
+        ? await context.getAccessToken()
+        : "master";
       const response = await fetch(
         `${context.baseURL}/built-in-tool-node/${nodeData.tool.id}/invoke`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer master`,
+            Authorization: `Bearer ${accessToken}`,
           },
           body: JSON.stringify({ args: inputs }),
         }
@@ -241,11 +244,14 @@ async function executeLlmNode(
       checkpointId: string | null = null,
       baseURL: string
     ): Promise<void> => {
-      const response = await fetch(`${baseURL}/api-ai/v2/llm-completion`, {
+      const accessToken = context.getAccessToken
+        ? await context.getAccessToken()
+        : "master";
+      const response = await fetch(`${baseURL}/llm-completion`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer master`,
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
           ...requestBody,
@@ -281,7 +287,6 @@ async function executeLlmNode(
         }
       } else if (responseData.type === "tool_call_required") {
         // 도구 호출 필요
-
         context.addExecutionLog({
           nodeId: node.id,
           nodeType: node.type,
@@ -317,13 +322,16 @@ async function executeLlmNode(
                 result = JSON.stringify(execResult);
               }
             } else if (tool.type === "built-in") {
+              const accessToken = context.getAccessToken
+                ? await context.getAccessToken()
+                : "master";
               const builtInResponse = await fetch(
                 `${context.baseURL}/built-in-tool-node/${tool.id}/invoke`,
                 {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer master`,
+                    Authorization: `Bearer ${accessToken}`,
                   },
                   body: JSON.stringify({ args: toolCall.args }),
                 }
@@ -399,7 +407,6 @@ async function executeLlmNode(
     await processNonStream(initialRequest, null, context.baseURL || "");
 
     // JSON 모드일 때는 parsed 결과를, TEXT 모드일 때는 메시지 결과를 반환
-
     let result: any;
     if (nodeData.output_type === "JSON" && parsedOutput) {
       // JSON 모드: parsed 객체를 그대로 반환
@@ -511,12 +518,16 @@ async function executeTransformerNode(
     const targetInputType = extractInputSchema(targetNode);
 
     // Auto-Transformer API 호출
+    const accessToken = context.getAccessToken
+      ? await context.getAccessToken()
+      : "master";
     const response = await fetch(
-      `/proxy/api/chat/api-ai/v2/ai-workflow/helper-node/auto-transformer`,
+      `${context.baseURL}/ai-workflow/helper-node/auto-transformer`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
           userRequest: nodeData.userRequest,
@@ -774,12 +785,16 @@ async function executeRAGNode(
       data: { storage_id: nodeData.storage_id, ...requestBody },
     });
 
+    const accessToken = context.getAccessToken
+      ? await context.getAccessToken()
+      : "master";
     const response = await fetch(
-      `/proxy/api/chat/api-ai/v2/ai-workflow/rag-storage-node/${nodeData.storage_id}/query`,
+      `${context.baseURL}/ai-workflow/rag-storage-node/${nodeData.storage_id}/query`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify(requestBody),
       }

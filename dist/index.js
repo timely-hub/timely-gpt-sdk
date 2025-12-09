@@ -29,6 +29,7 @@ __export(index_exports, {
   executeWorkflow: () => executeWorkflow
 });
 module.exports = __toCommonJS(index_exports);
+var import_config2 = require("dotenv/config");
 
 // src/core/api-client.ts
 var APIError = class extends Error {
@@ -318,24 +319,16 @@ function resolveInputBindings(inputBindings, nodeOutputs, allNodes, globalState)
     return resolved;
   }
   const celContext = createCELContext(nodeOutputs, allNodes, globalState);
-  console.log("[resolveInputBindings] \uC785\uB825 \uBC14\uC778\uB529:", inputBindings);
-  console.log("[resolveInputBindings] CEL \uCEE8\uD14D\uC2A4\uD2B8:", celContext);
-  console.log(
-    "[resolveInputBindings] nodeOutputs Map:",
-    Array.from(nodeOutputs.entries()).map(([id, output]) => ({ id, output }))
-  );
   for (const [targetKey, bindingPath] of Object.entries(inputBindings)) {
     try {
       const value = evaluateCEL(bindingPath, celContext);
       setPath(resolved, targetKey, value);
-      console.log(`[\uBC14\uC778\uB529 \uD574\uC11D \uC131\uACF5] ${bindingPath} \u2192 ${targetKey}`, value);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.warn(`[\uBC14\uC778\uB529 \uD574\uC11D \uC2E4\uD328] ${bindingPath}: ${message}`);
       continue;
     }
   }
-  console.log("[resolveInputBindings] \uCD5C\uC885 \uACB0\uACFC:", resolved);
   return resolved;
 }
 
@@ -415,14 +408,14 @@ async function executeToolNode(node, context, allNodes) {
         result = executionResult.result ?? executionResult;
       }
     } else if (nodeData.type === "built-in") {
+      const accessToken = context.getAccessToken ? await context.getAccessToken() : "master";
       const response = await fetch(
-        // TODO: 추후 hello-api 주소로 변경
-        `${process.env.TIMELY_BASE_URL}/api-ai/v2/built-in-tool-node/${nodeData.tool.id}/invoke`,
+        `${context.baseURL}/built-in-tool-node/${nodeData.tool.id}/invoke`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer master`
+            Authorization: `Bearer ${accessToken}`
           },
           body: JSON.stringify({ args: inputs })
         }
@@ -503,22 +496,20 @@ async function executeLlmNode(node, context, edges, allNodes) {
     const sessionId = `workflow-${node.id}-${Date.now()}`;
     const allMessages = [];
     let parsedOutput = null;
-    const processNonStream = async (requestBody, checkpointId = null) => {
-      const response = await fetch(
-        `${process.env.TIMELY_BASE_URL}/api-ai/v2/llm-completion`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer master`
-          },
-          body: JSON.stringify({
-            ...requestBody,
-            checkpoint_id: checkpointId,
-            stream: false
-          })
-        }
-      );
+    const processNonStream = async (requestBody, checkpointId = null, baseURL) => {
+      const accessToken = context.getAccessToken ? await context.getAccessToken() : "master";
+      const response = await fetch(`${baseURL}/llm-completion`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({
+          ...requestBody,
+          checkpoint_id: checkpointId,
+          stream: false
+        })
+      });
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         const errorMessage = errorData.message || errorData.error || response.statusText;
@@ -565,14 +556,14 @@ async function executeLlmNode(node, context, edges, allNodes) {
                 result2 = JSON.stringify(execResult);
               }
             } else if (tool.type === "built-in") {
-              const baseURL = context.baseURL || process.env.TIMELY_BASE_URL || "https://hello.timelygpt.co.kr";
+              const accessToken2 = context.getAccessToken ? await context.getAccessToken() : "master";
               const builtInResponse = await fetch(
-                `${baseURL}/api-ai/v2/built-in-tool-node/${tool.id}/invoke`,
+                `${context.baseURL}/built-in-tool-node/${tool.id}/invoke`,
                 {
                   method: "POST",
                   headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer master`
+                    Authorization: `Bearer ${accessToken2}`
                   },
                   body: JSON.stringify({ args: toolCall.args })
                 }
@@ -606,7 +597,8 @@ async function executeLlmNode(node, context, edges, allNodes) {
             ...requestBody,
             messages: toolResults
           },
-          responseData.configurable.checkpoint_id
+          responseData.configurable.checkpoint_id,
+          context.baseURL || ""
         );
       } else if (responseData.type === "error") {
         throw new Error(responseData.error);
@@ -633,7 +625,7 @@ async function executeLlmNode(node, context, edges, allNodes) {
         }
       ]
     };
-    await processNonStream(initialRequest);
+    await processNonStream(initialRequest, null, context.baseURL || "");
     let result;
     if (nodeData.output_type === "JSON" && parsedOutput) {
       result = parsedOutput;
@@ -707,7 +699,7 @@ async function executeTransformerNode(node, context, allNodes, edges) {
     }
     const targetInputType = extractInputSchema(targetNode);
     const response = await fetch(
-      `/proxy/api/chat/api-ai/v2/ai-workflow/helper-node/auto-transformer`,
+      `${context.baseURL}/ai-workflow/helper-node/auto-transformer`,
       {
         method: "POST",
         headers: {
@@ -878,7 +870,7 @@ async function executeRAGNode(node, context, edges, allNodes) {
       data: { storage_id: nodeData.storage_id, ...requestBody }
     });
     const response = await fetch(
-      `/proxy/api/chat/api-ai/v2/ai-workflow/rag-storage-node/${nodeData.storage_id}/query`,
+      `${context.baseURL}/ai-workflow/rag-storage-node/${nodeData.storage_id}/query`,
       {
         method: "POST",
         headers: {
@@ -1378,6 +1370,7 @@ var WorkflowContext = class {
     });
     this.executeCodeCallback = options?.executeCodeCallback;
     this.baseURL = options?.baseURL;
+    this.getAccessToken = options?.getAccessToken;
   }
   // Read-only access to state
   get state() {
@@ -1448,7 +1441,8 @@ var Workflow = class {
     const context = new WorkflowContext({
       addExecutionLog: options?.addExecutionLog,
       executeCodeCallback: options?.executeCodeCallback,
-      baseURL: this.baseURL
+      baseURL: this.baseURL,
+      getAccessToken: () => this.authManager.getAccessToken()
     });
     const result = await executeWorkflow(
       workflowData.nodes,

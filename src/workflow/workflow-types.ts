@@ -37,6 +37,7 @@ export interface WorkflowContextOptions {
   addExecutionLog?: (logs: Omit<ExecutionLog, "timestamp">) => void;
   executeCodeCallback?: ExecuteCodeCallback;
   baseURL?: string;
+  getAccessToken?: () => Promise<string>;
 }
 
 export class WorkflowContext {
@@ -47,6 +48,7 @@ export class WorkflowContext {
   public addExecutionLog: (logs: Omit<ExecutionLog, "timestamp">) => void;
   public executeCodeCallback?: ExecuteCodeCallback;
   public baseURL?: string;
+  public getAccessToken?: () => Promise<string>;
 
   constructor(options?: WorkflowContextOptions) {
     this._state = {
@@ -69,6 +71,7 @@ export class WorkflowContext {
 
     this.executeCodeCallback = options?.executeCodeCallback;
     this.baseURL = options?.baseURL;
+    this.getAccessToken = options?.getAccessToken;
   }
 
   // Read-only access to state

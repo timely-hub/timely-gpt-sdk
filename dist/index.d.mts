@@ -487,12 +487,14 @@ interface WorkflowContextOptions {
     addExecutionLog?: (logs: Omit<ExecutionLog, "timestamp">) => void;
     executeCodeCallback?: ExecuteCodeCallback;
     baseURL?: string;
+    getAccessToken?: () => Promise<string>;
 }
 declare class WorkflowContext {
     private _state;
     addExecutionLog: (logs: Omit<ExecutionLog, "timestamp">) => void;
     executeCodeCallback?: ExecuteCodeCallback;
     baseURL?: string;
+    getAccessToken?: () => Promise<string>;
     constructor(options?: WorkflowContextOptions);
     get state(): {
         execution: WorkflowExecutionState;
