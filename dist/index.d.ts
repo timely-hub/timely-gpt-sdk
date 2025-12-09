@@ -551,9 +551,45 @@ interface WorkflowResponse {
     status: number;
     data: AIWorkflowResponseData;
 }
+interface WorkflowListParams {
+    limit?: number;
+    offset?: number;
+}
+interface WorkflowListItem {
+    id: string;
+    workflow_id: string;
+    version: number;
+    base_version: number | null;
+    status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+    is_production: boolean;
+    name: string | null;
+    description: string | null;
+    archived_at: string | null;
+    published_at: string | null;
+    created_at: string;
+    updated_at: string;
+}
+interface WorkflowListResponse {
+    success: boolean;
+    status: number;
+    data: {
+        workflows: WorkflowListItem[];
+        total: number;
+    };
+}
 interface RunWorkflowOptions {
     addExecutionLog?: WorkflowContextOptions["addExecutionLog"];
     executeCodeCallback?: WorkflowContextOptions["executeCodeCallback"];
+}
+interface WorkflowStartParams {
+    schema: Record<string, any> | null;
+    type: string;
+}
+interface CustomToolInfo {
+    toolName: string;
+    requestSchema: Record<string, any> | null;
+    responseSchema: Record<string, any> | null;
+    functionBody: string | null;
 }
 declare class Workflow {
     private apiClient;
@@ -561,12 +597,63 @@ declare class Workflow {
     private baseURL;
     constructor(apiClient: APIClient, authManager: AuthManager, baseURL: string);
     /**
+     * List workflows created by the user
+     *
+     * @param params - Query parameters for pagination
+     * @param params.limit - Maximum number of workflows to return (optional)
+     * @param params.offset - Number of workflows to skip (optional)
+     * @returns List of workflows
+     *
+     * @example
+     * ```typescript
+     * // Get first 10 workflows
+     * const workflows = await client.workflow.list({ limit: 10, offset: 0 });
+     *
+     * // Get all workflows (no pagination)
+     * const allWorkflows = await client.workflow.list();
+     * ```
+     */
+    list(params?: WorkflowListParams): Promise<WorkflowListResponse>;
+    /**
      * Fetch workflow data by workflow ID
      *
      * @param workflowId - Workflow ID to fetch
      * @returns Workflow data response
      */
-    fetch(workflowId: string): Promise<WorkflowResponse>;
+    fetch(workflowId: string): Promise<WorkflowResponse["data"]["workflow_data"]>;
+    /**
+     * Get start parameters schema from workflow
+     *
+     * @param workflowId - Workflow ID to fetch and extract parameters from
+     * @returns Start node parameters schema information
+     *
+     * @example
+     * ```typescript
+     * const params = await client.workflow.getParams('workflow_id');
+     * console.log(params.schema); // JSON Schema 2.0 object
+     * console.log(params.type);   // "form"
+     * ```
+     */
+    getParams(workflowId: string): Promise<WorkflowStartParams>;
+    /**
+     * Get custom tools information from workflow
+     *
+     * @param workflowId - Workflow ID to fetch and extract custom tools from
+     * @returns Array of custom tool information
+     *
+     * @example
+     * ```typescript
+     * const customTools = await client.workflow.getCustomTools('workflow_id');
+     *
+     * customTools.forEach(tool => {
+     *   console.log(`Tool: ${tool.toolName}`);
+     *   console.log(`Input Schema:`, tool.schema);
+     *   console.log(`Response Schema:`, tool.responseSchema);
+     *   console.log(`Function:`, tool.functionBody);
+     * });
+     * ```
+     */
+    getCustomTools(workflowId: string): Promise<CustomToolInfo[]>;
     /**
      * Run a workflow by fetching its data and executing it
      *
@@ -662,4 +749,4 @@ declare class TimelyGPTClient {
     constructor(options?: TimelyGPTClientOptions);
 }
 
-export { type AIWorkflowEdgeType, type AIWorkflowNodeType, APIError, AVAILABLE_MODELS, type AuthResponse, type ChatModelNode, type ChatType, type CompletionRequest, type CompletionResponse, type Configurable, type ErrorResponse, type ExecuteCodeCallback, type ExecutionLog, type Message, type MessageRole, type ModelType, Stream, type StreamEvent, type StreamEventType, TimelyGPTClient, type TimelyGPTClientOptions, type ToolCall, type UserLocation, WorkflowContext, type WorkflowContextOptions, type WorkflowExecutionState, TimelyGPTClient as default, executeWorkflow };
+export { type AIWorkflowEdgeType, type AIWorkflowNodeType, APIError, AVAILABLE_MODELS, type AuthResponse, type ChatModelNode, type ChatType, type CompletionRequest, type CompletionResponse, type Configurable, type CustomToolInfo, type ErrorResponse, type ExecuteCodeCallback, type ExecutionLog, type Message, type MessageRole, type ModelType, type RunWorkflowOptions, Stream, type StreamEvent, type StreamEventType, TimelyGPTClient, type TimelyGPTClientOptions, type ToolCall, type UserLocation, WorkflowContext, type WorkflowContextOptions, type WorkflowExecutionState, type WorkflowListItem, type WorkflowListParams, type WorkflowListResponse, type WorkflowResponse, type WorkflowStartParams, TimelyGPTClient as default, executeWorkflow };

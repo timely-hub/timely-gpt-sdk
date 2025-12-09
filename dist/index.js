@@ -698,12 +698,14 @@ async function executeTransformerNode(node, context, allNodes, edges) {
       throw new Error("Transformer \uB178\uB4DC\uC758 \uB2E4\uC74C \uB178\uB4DC\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4");
     }
     const targetInputType = extractInputSchema(targetNode);
+    const accessToken = context.getAccessToken ? await context.getAccessToken() : "master";
     const response = await fetch(
       `${context.baseURL}/ai-workflow/helper-node/auto-transformer`,
       {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`
         },
         body: JSON.stringify({
           userRequest: nodeData.userRequest,
@@ -869,12 +871,14 @@ async function executeRAGNode(node, context, edges, allNodes) {
       message: `RAG \uAC80\uC0C9 \uC2DC\uC791`,
       data: { storage_id: nodeData.storage_id, ...requestBody }
     });
+    const accessToken = context.getAccessToken ? await context.getAccessToken() : "master";
     const response = await fetch(
       `${context.baseURL}/ai-workflow/rag-storage-node/${nodeData.storage_id}/query`,
       {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`
         },
         body: JSON.stringify(requestBody)
       }
@@ -1399,6 +1403,40 @@ var Workflow = class {
     this.baseURL = baseURL;
   }
   /**
+   * List workflows created by the user
+   *
+   * @param params - Query parameters for pagination
+   * @param params.limit - Maximum number of workflows to return (optional)
+   * @param params.offset - Number of workflows to skip (optional)
+   * @returns List of workflows
+   *
+   * @example
+   * ```typescript
+   * // Get first 10 workflows
+   * const workflows = await client.workflow.list({ limit: 10, offset: 0 });
+   *
+   * // Get all workflows (no pagination)
+   * const allWorkflows = await client.workflow.list();
+   * ```
+   */
+  async list(params) {
+    const accessToken = await this.authManager.getAccessToken();
+    const headers = {
+      Authorization: `Bearer ${accessToken}`
+    };
+    const queryParams = new URLSearchParams();
+    queryParams.append("status", "PRODUCTION");
+    if (params?.limit !== void 0) {
+      queryParams.append("limit", params.limit.toString());
+    }
+    if (params?.offset !== void 0) {
+      queryParams.append("offset", params.offset.toString());
+    }
+    const queryString = queryParams.toString();
+    const endpoint = queryString ? `/ai-workflow/list?${queryString}` : "/ai-workflow/list";
+    return this.apiClient.get(endpoint, headers);
+  }
+  /**
    * Fetch workflow data by workflow ID
    *
    * @param workflowId - Workflow ID to fetch
@@ -1409,10 +1447,86 @@ var Workflow = class {
     const headers = {
       Authorization: `Bearer ${accessToken}`
     };
-    return this.apiClient.get(
+    const response = await this.apiClient.get(
       `/ai-workflow/${workflowId}/version/current`,
       headers
     );
+    return response?.data?.workflow_data;
+  }
+  /**
+   * Get start parameters schema from workflow
+   *
+   * @param workflowId - Workflow ID to fetch and extract parameters from
+   * @returns Start node parameters schema information
+   *
+   * @example
+   * ```typescript
+   * const params = await client.workflow.getParams('workflow_id');
+   * console.log(params.schema); // JSON Schema 2.0 object
+   * console.log(params.type);   // "form"
+   * ```
+   */
+  async getParams(workflowId) {
+    const workflowData = await this.fetch(workflowId);
+    const startNode = workflowData.nodes.find(
+      (node) => node.type === "start"
+    );
+    if (!startNode) {
+      return {
+        schema: null,
+        type: "unknown"
+      };
+    }
+    const nodeData = startNode.data?.nodeData;
+    if (!nodeData) {
+      return {
+        schema: null,
+        type: "unknown"
+      };
+    }
+    return {
+      schema: nodeData.schema || null,
+      type: nodeData.type || "unknown"
+    };
+  }
+  /**
+   * Get custom tools information from workflow
+   *
+   * @param workflowId - Workflow ID to fetch and extract custom tools from
+   * @returns Array of custom tool information
+   *
+   * @example
+   * ```typescript
+   * const customTools = await client.workflow.getCustomTools('workflow_id');
+   *
+   * customTools.forEach(tool => {
+   *   console.log(`Tool: ${tool.toolName}`);
+   *   console.log(`Input Schema:`, tool.schema);
+   *   console.log(`Response Schema:`, tool.responseSchema);
+   *   console.log(`Function:`, tool.functionBody);
+   * });
+   * ```
+   */
+  async getCustomTools(workflowId) {
+    const workflowData = await this.fetch(workflowId);
+    const customTools = [];
+    const toolNodes = workflowData.nodes.filter(
+      (node) => node.type === "tool" && node.data?.nodeData?.type === "custom"
+    );
+    for (const node of toolNodes) {
+      const nodeData = node.data?.nodeData;
+      const tool = nodeData?.tool;
+      if (!tool) {
+        continue;
+      }
+      customTools.push({
+        toolName: tool.name || "Unknown",
+        requestSchema: tool.schema || null,
+        responseSchema: tool.response_schema || null,
+        functionBody: tool.function_body || null
+      });
+    }
+    return customTools;
   }
   /**
    * Run a workflow by fetching its data and executing it
@@ -1436,8 +1550,7 @@ var Workflow = class {
    * ```
    */
   async run(workflowId, initialInputs, options) {
-    const workflowResponse = await this.fetch(workflowId);
-    const workflowData = workflowResponse.data.workflow_data;
+    const workflowData = await this.fetch(workflowId);
     const context = new WorkflowContext({
       addExecutionLog: options?.addExecutionLog,
       executeCodeCallback: options?.executeCodeCallback,

@@ -24,6 +24,17 @@ export type {
   WorkflowExecutionState,
 } from "./workflow/workflow-types";
 
+// Export workflow resource types
+export type {
+  CustomToolInfo,
+  RunWorkflowOptions,
+  WorkflowListItem,
+  WorkflowListParams,
+  WorkflowListResponse,
+  WorkflowResponse,
+  WorkflowStartParams,
+} from "./resources/workflow";
+
 /**
  * Timely GPT API 클라이언트
  *
