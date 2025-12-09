@@ -1501,7 +1501,7 @@ var Workflow = class {
    *
    * customTools.forEach(tool => {
    *   console.log(`Tool: ${tool.toolName}`);
-   *   console.log(`Input Schema:`, tool.schema);
+   *   console.log(`Input Schema:`, tool.requestSchema);
    *   console.log(`Response Schema:`, tool.responseSchema);
    *   console.log(`Function:`, tool.functionBody);
    * });
