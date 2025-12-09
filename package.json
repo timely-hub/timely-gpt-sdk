@@ -1,6 +1,6 @@
 {
   "name": "@timely/gpt-sdk",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Official TypeScript SDK for Timely GPT API",
   "repository": {
     "type": "git",
@@ -48,11 +48,16 @@
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^20.19.25",
+    "@xyflow/react": "^12.10.0",
     "tsup": "^8.0.1",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   },
   "directories": {
     "example": "examples"
+  },
+  "dependencies": {
+    "@marcbachmann/cel-js": "^6.3.3",
+    "dotenv": "^17.2.3"
   }
 }

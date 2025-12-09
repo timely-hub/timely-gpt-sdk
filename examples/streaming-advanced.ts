@@ -2,8 +2,7 @@ import { StreamEvent, TimelyGPTClient } from "../src";
 
 async function main() {
   const client = new TimelyGPTClient({
-    apiKey: "sdk_live_1234567890abcdef1234567890abcdef",
-    baseURL: "https://hello.timelygpt.co.kr/api/v2/chat",
+    apiKey: process.env.TIMELY_API_KEY, // TIMELY_API_KEY 입력
   });
 
   try {
