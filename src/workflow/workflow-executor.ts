@@ -224,15 +224,7 @@ async function executeLlmNode(
 
   try {
     const nodeData = (node as any).data.nodeData;
-
-    if (!nodeData) {
-      throw new Error("LLM 노드 데이터가 없습니다");
-    }
-
     const chatModelNodeId = nodeData.id;
-    if (!chatModelNodeId) {
-      throw new Error("Chat Model Node ID가 없습니다");
-    }
 
     const sessionId = `workflow-${node.id}-${Date.now()}`;
     const allMessages: any[] = [];
@@ -382,19 +374,15 @@ async function executeLlmNode(
     const initialRequest: LLMCompletionRequest = {
       session_id: sessionId,
       chat_model_node_id: chatModelNodeId,
-      chat_model_node:
-        nodeData.output_type === "JSON" && nodeData.output_schema
-          ? ({
-              output_type: "JSON" as const,
-              output_schema: nodeData.output_schema as Record<string, any>,
-            } as any)
-          : null,
+      chat_model_node: nodeData,
       files: [],
       locale: "ko",
       user_location: null,
       use_all_built_in_tools: false,
-      use_background_summarize: true,
+      use_background_summarize: false,
+      never_use_history: true,
       checkpoint_id: null,
+
       stream: false,
       messages: [
         {
