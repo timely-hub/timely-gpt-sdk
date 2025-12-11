@@ -1278,6 +1278,63 @@ async function executeConditionNode(
 
   return { selectedHandleId: defaultHandleId };
 }
+/**
+ * Upload 노드 실행
+ */
+async function executeUploadNode(
+  node: AIWorkflowNodeType,
+  context: WorkflowContextType,
+  allNodes: AIWorkflowNodeType[],
+  edges: AIWorkflowEdgeType[]
+): Promise<any> {
+  if (node.type !== "upload") {
+    throw new Error("Upload 노드가 아닙니다");
+  }
+
+  const nodeData = node.data;
+
+  context.addExecutionLog({
+    nodeId: node.id,
+    nodeType: node.type,
+    type: "info",
+    message: "파일 업로드 노드 실행",
+    data: { config: nodeData.nodeData },
+  });
+
+  try {
+    // 노드 데이터에서 미리 업로드된 파일 정보 가져오기
+    // (UploadBox에서 이미 업로드 완료)
+    const uploadedFile = nodeData.nodeData?.uploadedFile;
+
+    if (!uploadedFile) {
+      throw new Error("업로드된 파일이 없습니다");
+    }
+
+    // 파일 정보 반환 (fileUrl, fileName, fileType)
+    const result = uploadedFile;
+
+    context.addExecutionLog({
+      nodeId: node.id,
+      nodeType: node.type,
+      type: "complete",
+      message: "파일 업로드 완료",
+      data: result,
+    });
+
+    return result;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
+    context.addExecutionLog({
+      nodeId: node.id,
+      nodeType: node.type,
+      type: "error",
+      message: `파일 업로드 실패: ${errorMessage}`,
+    });
+
+    throw error;
+  }
+}
 
 async function executeNode(
   node: AIWorkflowNodeType,
@@ -1306,6 +1363,8 @@ async function executeNode(
       return executeStateNode(node, context, allNodes, edges);
     case "loop":
       return executeLoopNode(node, context, allNodes, edges);
+    case "upload":
+      return executeUploadNode(node, context, allNodes, edges);
     default:
       throw new Error(
         `지원하지 않는 노드 타입: ${
