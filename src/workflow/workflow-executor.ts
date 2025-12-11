@@ -373,7 +373,8 @@ async function executeLlmNode(
     // 초기 요청
     const initialRequest: LLMCompletionRequest = {
       session_id: sessionId,
-      chat_model_node_id: chatModelNodeId,
+      chat_model_node_id:
+        chatModelNodeId && !nodeData ? chatModelNodeId : undefined,
       chat_model_node: nodeData,
       files: [],
       locale: "ko",
