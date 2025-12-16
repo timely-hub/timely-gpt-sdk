@@ -1,4 +1,4 @@
-import "dotenv/config";
+// Note: dotenv/config removed for browser compatibility
 import { evaluateCEL, evaluateCondition } from "./evaluate-cel";
 import { resolveInputBindings } from "./resolve-input-bindings";
 import type {
@@ -1365,9 +1365,10 @@ async function executeNode(
 
 /**
  * 워크플로우 실행 엔진
+ * @template TNodeType - The node type to use (must extend AIWorkflowNodeType)
  */
-export async function executeWorkflow(
-  nodes: AIWorkflowNodeType[],
+export async function executeWorkflow<TNodeType extends AIWorkflowNodeType = AIWorkflowNodeType>(
+  nodes: TNodeType[],
   edges: AIWorkflowEdgeType[],
   context: WorkflowContextType,
   initialInputs?: Record<string, any>

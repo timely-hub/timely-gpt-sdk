@@ -1,13 +1,13 @@
-import { APIClient } from "../core/api-client";
-import { AuthManager } from "../core/auth";
+import type { APIClient } from "../core/api-client";
+import type { AuthManager } from "../core/auth";
 import { executeWorkflow } from "../workflow/workflow-executor";
-import {
+import type {
   AIWorkflowEdgeType,
   AIWorkflowNodeType,
   AIWorkflowResponseData,
-  WorkflowContext,
   WorkflowContextOptions,
 } from "../workflow/workflow-types";
+import { WorkflowContext } from "../workflow/workflow-types";
 
 export interface WorkflowResponse {
   success: boolean;

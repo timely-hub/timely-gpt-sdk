@@ -1,4 +1,4 @@
-import { Edge, Node } from "@xyflow/react";
+import type { Edge, Node } from "@xyflow/react";
 
 export type AIWorkflowNodeKeyNames =
   | "start"
@@ -134,13 +134,13 @@ export type WorkflowNodeType<
   NodeType extends string | undefined = string | undefined,
   NodeData extends Record<string, unknown> = Record<string, unknown>
 > = Node<NodeData & AIWorkflowNodeDataCommon, NodeType>;
-export type AIWorkflowNodeType = WorkflowNodeType<
+
+// Generic type for workflow nodes - can accept specific node data types
+export type AIWorkflowNodeType<TNodeData = any> = WorkflowNodeType<
   string,
   {
     data: {
-      nodeData: {
-        [key: string]: any;
-      };
+      nodeData: TNodeData;
     };
   } & Record<string, any>
 >;

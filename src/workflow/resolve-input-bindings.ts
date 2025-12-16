@@ -1,6 +1,6 @@
 import { setPath } from "../utils/object";
 import { evaluateCEL } from "./evaluate-cel";
-import { AIWorkflowNodeType } from "./workflow-types";
+import type { AIWorkflowNodeType } from "./workflow-types";
 /**
  * CEL 평가를 위한 컨텍스트 생성
  */

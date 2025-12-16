@@ -1,6 +1,3 @@
-// src/index.ts
-import "dotenv/config";
-
 // src/core/api-client.ts
 var APIError = class extends Error {
   constructor(message, statusCode, error) {
@@ -218,9 +215,6 @@ var Chat = class {
     this.completions = new Completions(apiClient, authManager);
   }
 };
-
-// src/workflow/workflow-executor.ts
-import "dotenv/config";
 
 // src/workflow/evaluate-cel.ts
 import { evaluate, parse } from "@marcbachmann/cel-js";
@@ -456,13 +450,7 @@ async function executeLlmNode(node, context, edges, allNodes) {
   });
   try {
     const nodeData = node.data.nodeData;
-    if (!nodeData) {
-      throw new Error("LLM \uB178\uB4DC \uB370\uC774\uD130\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4");
-    }
     const chatModelNodeId = nodeData.id;
-    if (!chatModelNodeId) {
-      throw new Error("Chat Model Node ID\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4");
-    }
     const sessionId = `workflow-${node.id}-${Date.now()}`;
     const allMessages = [];
     let parsedOutput = null;
@@ -576,16 +564,14 @@ async function executeLlmNode(node, context, edges, allNodes) {
     };
     const initialRequest = {
       session_id: sessionId,
-      chat_model_node_id: chatModelNodeId,
-      chat_model_node: nodeData.output_type === "JSON" && nodeData.output_schema ? {
-        output_type: "JSON",
-        output_schema: nodeData.output_schema
-      } : null,
+      chat_model_node_id: chatModelNodeId && !nodeData ? chatModelNodeId : void 0,
+      chat_model_node: nodeData,
       files: [],
       locale: "ko",
       user_location: null,
       use_all_built_in_tools: false,
-      use_background_summarize: true,
+      use_background_summarize: false,
+      never_use_history: true,
       checkpoint_id: null,
       stream: false,
       messages: [
@@ -601,9 +587,7 @@ async function executeLlmNode(node, context, edges, allNodes) {
       result = parsedOutput;
     } else {
       result = {
-        messages: allMessages,
-        lastMessage: allMessages.length > 0 ? allMessages[allMessages.length - 1] : null,
-        timestamp: Date.now()
+        response: allMessages.length > 0 ? allMessages[allMessages.length - 1].content : null
       };
     }
     context.addExecutionLog({
@@ -1185,6 +1169,43 @@ async function executeConditionNode(node, context, allNodes, edges) {
   });
   return { selectedHandleId: defaultHandleId };
 }
+async function executeUploadNode(node, context, allNodes, edges) {
+  if (node.type !== "upload") {
+    throw new Error("Upload \uB178\uB4DC\uAC00 \uC544\uB2D9\uB2C8\uB2E4");
+  }
+  const nodeData = node.data;
+  context.addExecutionLog({
+    nodeId: node.id,
+    nodeType: node.type,
+    type: "info",
+    message: "\uD30C\uC77C \uC5C5\uB85C\uB4DC \uB178\uB4DC \uC2E4\uD589",
+    data: { config: nodeData.nodeData }
+  });
+  try {
+    const uploadedFile = nodeData.nodeData?.uploadedFile;
+    if (!uploadedFile) {
+      throw new Error("\uC5C5\uB85C\uB4DC\uB41C \uD30C\uC77C\uC774 \uC5C6\uC2B5\uB2C8\uB2E4");
+    }
+    const result = uploadedFile;
+    context.addExecutionLog({
+      nodeId: node.id,
+      nodeType: node.type,
+      type: "complete",
+      message: "\uD30C\uC77C \uC5C5\uB85C\uB4DC \uC644\uB8CC",
+      data: result
+    });
+    return result;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    context.addExecutionLog({
+      nodeId: node.id,
+      nodeType: node.type,
+      type: "error",
+      message: `\uD30C\uC77C \uC5C5\uB85C\uB4DC \uC2E4\uD328: ${errorMessage}`
+    });
+    throw error;
+  }
+}
 async function executeNode(node, context, allNodes, edges, initialInputs) {
   switch (node.type) {
     case "start":
@@ -1205,6 +1226,8 @@ async function executeNode(node, context, allNodes, edges, initialInputs) {
       return executeStateNode(node, context, allNodes, edges);
     case "loop":
       return executeLoopNode(node, context, allNodes, edges);
+    case "upload":
+      return executeUploadNode(node, context, allNodes, edges);
     default:
       throw new Error(
         `\uC9C0\uC6D0\uD558\uC9C0 \uC54A\uB294 \uB178\uB4DC \uD0C0\uC785: ${node?.type ?? "unknown"}`
@@ -1539,6 +1562,8 @@ var Workflow = class {
 
 // src/generated/models.ts
 var AVAILABLE_MODELS = [
+  "gpt-5.2",
+  "gpt-5.2 chat",
   "gpt-5.1",
   "gpt-5.1 chat",
   "gpt-5",
@@ -1554,6 +1579,7 @@ var AVAILABLE_MODELS = [
   "gpt-5.1-codex-mini",
   "gpt-5-codex",
   "codex-mini",
+  "o3-deep-research",
   "gemini-3-pro",
   "gemini-2.5-flash-lite",
   "gemini-2.5-flash",
@@ -1575,6 +1601,7 @@ var AVAILABLE_MODELS = [
   "devstral-medium",
   "codestral",
   "qwen-qwq-32b",
+  "grok-4-1-fast-reasoning",
   "grok-4-1-fast-non-reasoning",
   "grok-4-fast-reasoning",
   "grok-4-fast-non-reasoning",
@@ -1609,8 +1636,8 @@ var TimelyGPTClient = class {
    * ```
    */
   constructor(options = {}) {
-    const apiKey = options.apiKey || process.env.TIMELY_API_KEY;
-    const baseURL = options.baseURL || process.env.TIMELY_BASE_URL || "https://hello.timelygpt.co.kr/api/v2/chat";
+    const apiKey = options.apiKey || (typeof process !== "undefined" ? process.env.TIMELY_API_KEY : void 0);
+    const baseURL = options.baseURL || (typeof process !== "undefined" ? process.env.TIMELY_BASE_URL : void 0) || "https://hello.timelygpt.co.kr/api/v2/chat";
     if (!apiKey) {
       throw new Error(
         "API key is required. Provide it via options.apiKey or TIMELY_API_KEY environment variable."

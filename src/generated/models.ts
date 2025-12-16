@@ -1,5 +1,5 @@
 // This file is auto-generated. Do not edit manually.
-// Generated at: 2025-12-09T04:38:12.500Z
+// Generated at: 2025-12-16T09:05:26.669Z
 
 /**
  * Available model types from Timely GPT API
@@ -8,6 +8,8 @@
  * npm run generate-models
  */
 export type ModelType =
+  | 'gpt-5.2'
+  | 'gpt-5.2 chat'
   | 'gpt-5.1'
   | 'gpt-5.1 chat'
   | 'gpt-5'
@@ -23,6 +25,7 @@ export type ModelType =
   | 'gpt-5.1-codex-mini'
   | 'gpt-5-codex'
   | 'codex-mini'
+  | 'o3-deep-research'
   | 'gemini-3-pro'
   | 'gemini-2.5-flash-lite'
   | 'gemini-2.5-flash'
@@ -44,6 +47,7 @@ export type ModelType =
   | 'devstral-medium'
   | 'codestral'
   | 'qwen-qwq-32b'
+  | 'grok-4-1-fast-reasoning'
   | 'grok-4-1-fast-non-reasoning'
   | 'grok-4-fast-reasoning'
   | 'grok-4-fast-non-reasoning'
@@ -57,6 +61,8 @@ export type ModelType =
  * List of all available models
  */
 export const AVAILABLE_MODELS: readonly ModelType[] = [
+  'gpt-5.2',
+  'gpt-5.2 chat',
   'gpt-5.1',
   'gpt-5.1 chat',
   'gpt-5',
@@ -72,6 +78,7 @@ export const AVAILABLE_MODELS: readonly ModelType[] = [
   'gpt-5.1-codex-mini',
   'gpt-5-codex',
   'codex-mini',
+  'o3-deep-research',
   'gemini-3-pro',
   'gemini-2.5-flash-lite',
   'gemini-2.5-flash',
@@ -93,6 +100,7 @@ export const AVAILABLE_MODELS: readonly ModelType[] = [
   'devstral-medium',
   'codestral',
   'qwen-qwq-32b',
+  'grok-4-1-fast-reasoning',
   'grok-4-1-fast-non-reasoning',
   'grok-4-fast-reasoning',
   'grok-4-fast-non-reasoning',

@@ -1,4 +1,5 @@
-import "dotenv/config";
+// Note: dotenv/config removed for browser compatibility
+// When using in Node.js, load environment variables before importing this module
 import { APIClient } from "./core/api-client";
 import { AuthManager } from "./core/auth";
 import { Chat } from "./resources/chat";
@@ -100,10 +101,10 @@ export class TimelyGPTClient {
    * ```
    */
   constructor(options: TimelyGPTClientOptions = {}) {
-    const apiKey = options.apiKey || process.env.TIMELY_API_KEY;
+    const apiKey = options.apiKey || (typeof process !== 'undefined' ? process.env.TIMELY_API_KEY : undefined);
     const baseURL =
       options.baseURL ||
-      process.env.TIMELY_BASE_URL ||
+      (typeof process !== 'undefined' ? process.env.TIMELY_BASE_URL : undefined) ||
       "https://hello.timelygpt.co.kr/api/v2/chat";
 
     if (!apiKey) {

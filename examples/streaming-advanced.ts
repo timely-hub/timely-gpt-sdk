@@ -1,4 +1,5 @@
-import { StreamEvent, TimelyGPTClient } from "../src";
+import type { StreamEvent } from "../src";
+import { TimelyGPTClient } from "../src";
 
 async function main() {
   const client = new TimelyGPTClient({
