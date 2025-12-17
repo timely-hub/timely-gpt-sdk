@@ -37,7 +37,6 @@ function generateTypeDefinition(models: string[]): string {
   const modelUnion = models.map((model) => `  | '${model}'`).join("\n");
 
   return `// This file is auto-generated. Do not edit manually.
-// Generated at: ${new Date().toISOString()}
 
 /**
  * Available model types from Timely GPT API

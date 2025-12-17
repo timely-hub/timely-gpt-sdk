@@ -485,6 +485,7 @@ interface WorkflowExecutionState {
 type ExecuteCodeCallback = (toolName: string, args: Record<string, any>, functionCode: string) => Promise<any>;
 interface WorkflowContextOptions {
     addExecutionLog?: (logs: Omit<ExecutionLog, "timestamp">) => void;
+    onNodeResult?: (nodeId: string, nodeType: string, data: any) => void;
     executeCodeCallback?: ExecuteCodeCallback;
     baseURL?: string;
     getAccessToken?: () => Promise<string>;
@@ -492,6 +493,7 @@ interface WorkflowContextOptions {
 declare class WorkflowExecutionContext {
     private _state;
     addExecutionLog: (logs: Omit<ExecutionLog, "timestamp">) => void;
+    onNodeResult?: (nodeId: string, nodeType: string, data: any) => void;
     executeCodeCallback?: ExecuteCodeCallback;
     baseURL?: string;
     getAccessToken?: () => Promise<string>;

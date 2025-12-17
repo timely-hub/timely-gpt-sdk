@@ -35,6 +35,12 @@ export type ExecuteCodeCallback = (
 
 export interface WorkflowContextOptions {
   addExecutionLog?: (logs: Omit<ExecutionLog, "timestamp">) => void;
+  onNodeResult?: (
+    nodeId: string,
+    nodeType: string,
+    data: any,
+    message?: string
+  ) => void;
   executeCodeCallback?: ExecuteCodeCallback;
   baseURL?: string;
   getAccessToken?: () => Promise<string>;
@@ -45,10 +51,17 @@ export class WorkflowExecutionContext {
     execution: WorkflowExecutionState;
   };
 
-  public addExecutionLog: (logs: Omit<ExecutionLog, "timestamp">) => void;
+  private _onNodeResultCallback?: (
+    nodeId: string,
+    nodeType: string,
+    data: any,
+    message?: string
+  ) => void;
   public executeCodeCallback?: ExecuteCodeCallback;
   public baseURL?: string;
   public getAccessToken?: () => Promise<string>;
+
+  private _addExecutionLog?: (logs: Omit<ExecutionLog, "timestamp">) => void;
 
   constructor(options?: WorkflowContextOptions) {
     this._state = {
@@ -63,15 +76,31 @@ export class WorkflowExecutionContext {
       },
     };
 
-    this.addExecutionLog =
-      options?.addExecutionLog ||
-      ((logs: Omit<ExecutionLog, "timestamp">) => {
-        console.log(`[${logs.nodeType}] ${logs.message}`);
-      });
-
+    this._onNodeResultCallback = options?.onNodeResult;
     this.executeCodeCallback = options?.executeCodeCallback;
     this.baseURL = options?.baseURL;
     this.getAccessToken = options?.getAccessToken;
+    this._addExecutionLog = options?.addExecutionLog;
+  }
+
+  // onNodeResult를 호출하면 자동으로 addExecutionLog도 호출
+  public onNodeResult(
+    nodeId: string,
+    nodeType: string,
+    data: any,
+    message?: string
+  ): void {
+    // 콜백 호출
+    this._onNodeResultCallback?.(nodeId, nodeType, data, message);
+    if (this._addExecutionLog) {
+      this._addExecutionLog({
+        nodeId,
+        nodeType,
+        type: data.type,
+        message: message || `${nodeType} - ${data.type}`,
+        data,
+      });
+    }
   }
 
   // Read-only access to state

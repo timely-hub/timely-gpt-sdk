@@ -45,15 +45,15 @@ async function executeStartNode(
     // Start 노드의 초기 입력 데이터
     ...initialInputs,
   };
-
-  context.addExecutionLog({
-    nodeId: node.id,
-    nodeType: node.type,
-    type: "complete",
-    message: `Start 노드 실행 완료`,
-    data: output,
-  });
-
+  context.onNodeResult?.(
+    node.id,
+    node.type,
+    {
+      type: "start",
+      input: initialInputs,
+    },
+    "Start 노드 실행 시작"
+  );
   return output;
 }
 
@@ -74,13 +74,15 @@ async function executeToolNode(
     context.state.execution.globalState
   );
 
-  context.addExecutionLog({
-    nodeId: node.id,
-    nodeType: node.type,
-    type: "info",
-    message: `Tool 노드 입력 데이터`,
-    data: inputs,
-  });
+  context.onNodeResult?.(
+    node.id,
+    node.type,
+    {
+      type: "start",
+      input: inputs,
+    },
+    "Tool 노드 실행 시작"
+  );
 
   let result: any = null;
 
@@ -152,25 +154,27 @@ async function executeToolNode(
       throw new Error("MCP 도구 실행은 아직 지원되지 않습니다");
     }
 
-    context.addExecutionLog({
-      nodeId: node.id,
-      nodeType: node.type,
-      type: "complete",
-      message: `Tool 노드 실행 완료`,
-      data: result,
-    });
+    context.onNodeResult?.(
+      node.id,
+      node.type,
+      {
+        type: "done",
+        output: result,
+      },
+      "Tool 노드 실행 완료"
+    );
 
     return result;
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-
-    context.addExecutionLog({
-      nodeId: node.id,
-      nodeType: node.type,
-      type: "error",
-      message: `Tool 노드 실행 실패: ${errorMessage}`,
-    });
-
+    context.onNodeResult?.(
+      node.id,
+      node.type,
+      {
+        type: "error",
+        error: error instanceof Error ? error.message : String(error),
+      },
+      "Tool 노드 실행 실패"
+    );
     throw error;
   }
 }
@@ -214,14 +218,15 @@ async function executeLlmNode(
     }
   }
 
-  context.addExecutionLog({
-    nodeId: node.id,
-    nodeType: node.type,
-    type: "info",
-    message: `LLM 노드 입력 데이터`,
-    data: inputs,
-  });
-
+  context.onNodeResult?.(
+    node.id,
+    node.type,
+    {
+      type: "start",
+      input: inputs,
+    },
+    "LLM 노드 실행 시작"
+  );
   try {
     const nodeData = (node as any).data.nodeData;
     const chatModelNodeId = nodeData.id;
@@ -285,14 +290,18 @@ async function executeLlmNode(
           try {
             const event: any = JSON.parse(data);
 
+            context.onNodeResult?.(
+              node.id,
+              node.type,
+              {
+                type: "stream",
+                data: event,
+              },
+              "LLM 노드 스트리밍 이벤트"
+            );
+
             switch (event.type) {
               case "start":
-                context.addExecutionLog({
-                  nodeId: node.id,
-                  nodeType: node.type,
-                  type: "info",
-                  message: "LLM 응답 시작",
-                });
                 break;
 
               case "token":
@@ -304,12 +313,6 @@ async function executeLlmNode(
                 break;
 
               case "progress":
-                context.addExecutionLog({
-                  nodeId: node.id,
-                  nodeType: node.type,
-                  type: "info",
-                  message: event.content,
-                });
                 break;
 
               case "final_response":
@@ -323,17 +326,6 @@ async function executeLlmNode(
                 if (event.parsed) {
                   parsedOutput = event.parsed;
                 }
-
-                context.addExecutionLog({
-                  nodeId: node.id,
-                  nodeType: node.type,
-                  type: "info",
-                  message: "최종 응답 수신",
-                  data: {
-                    messageLength: event.message?.length || 0,
-                    thinking: accumulatedThinking ? `(${accumulatedThinking.length} chars)` : undefined
-                  },
-                });
                 break;
 
               case "end":
@@ -350,15 +342,6 @@ async function executeLlmNode(
                 throw new Error(event.message || event.error);
 
               case "tool_call_required":
-                // 도구 호출 필요
-                context.addExecutionLog({
-                  nodeId: node.id,
-                  nodeType: node.type,
-                  type: "info",
-                  message: `도구 호출 필요`,
-                  data: event.tool_calls,
-                });
-
                 // 도구 실행
                 const toolResults = await Promise.all(
                   event.tool_calls.map(async (toolCall: any) => {
@@ -370,7 +353,9 @@ async function executeLlmNode(
                     );
 
                     if (!tool) {
-                      result = JSON.stringify({ error: "도구를 찾을 수 없습니다" });
+                      result = JSON.stringify({
+                        error: "도구를 찾을 수 없습니다",
+                      });
                     } else if (tool.type === "custom") {
                       const execResult = await executeCode(
                         tool.functionCode || "",
@@ -402,13 +387,17 @@ async function executeLlmNode(
                       );
 
                       if (!builtInResponse.ok) {
-                        result = JSON.stringify({ error: "Built-in tool 실행 실패" });
+                        result = JSON.stringify({
+                          error: "Built-in tool 실행 실패",
+                        });
                       } else {
                         const builtInData = await builtInResponse.json();
                         result = builtInData.data.output;
                       }
                     } else {
-                      result = JSON.stringify({ error: "지원하지 않는 도구 타입" });
+                      result = JSON.stringify({
+                        error: "지원하지 않는 도구 타입",
+                      });
                     }
 
                     return {
@@ -419,14 +408,6 @@ async function executeLlmNode(
                     };
                   })
                 );
-
-                context.addExecutionLog({
-                  nodeId: node.id,
-                  nodeType: node.type,
-                  type: "info",
-                  message: `도구 실행 완료`,
-                  data: toolResults,
-                });
 
                 // 재귀 호출
                 await processStream(
@@ -490,25 +471,27 @@ async function executeLlmNode(
       };
     }
 
-    context.addExecutionLog({
-      nodeId: node.id,
-      nodeType: node.type,
-      type: "complete",
-      message: `LLM 노드 실행 완료`,
-      data: result,
-    });
+    context.onNodeResult?.(
+      node.id,
+      node.type,
+      {
+        type: "done",
+        output: result,
+      },
+      "LLM 노드 실행 완료"
+    );
 
     return result;
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-
-    context.addExecutionLog({
-      nodeId: node.id,
-      nodeType: node.type,
-      type: "error",
-      message: `LLM 노드 실행 실패: ${errorMessage}`,
-    });
-
+    context.onNodeResult?.(
+      node.id,
+      node.type,
+      {
+        type: "error",
+        error: error instanceof Error ? error.message : String(error),
+      },
+      "LLM 노드 실행 실패"
+    );
     throw error;
   }
 }
@@ -565,13 +548,16 @@ async function executeTransformerNode(
       });
     }
 
-    context.addExecutionLog({
-      nodeId: node.id,
-      nodeType: node.type,
-      type: "info",
-      message: `Transformer 노드 입력 데이터 (${sources.length}개 소스)`,
-      data: sources,
-    });
+    context.onNodeResult?.(
+      node.id,
+      node.type,
+      {
+        type: "start",
+        inputs: sources,
+        inputsCount: sources.length,
+      },
+      "Transformer 노드 실행 시작"
+    );
 
     // 다음 노드 찾기 (targetNode)
     const outgoingEdge = edges.find((e) => e.source === node.id);
@@ -618,25 +604,26 @@ async function executeTransformerNode(
     const data = await response.json();
     const result = data.data.result;
 
-    context.addExecutionLog({
-      nodeId: node.id,
-      nodeType: node.type,
-      type: "complete",
-      message: `Transformer 노드 실행 완료`,
-      data: result,
-    });
-
+    context.onNodeResult?.(
+      node.id,
+      node.type,
+      {
+        type: "done",
+        output: result,
+      },
+      "Transformer 노드 실행 완료"
+    );
     return result;
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-
-    context.addExecutionLog({
-      nodeId: node.id,
-      nodeType: node.type,
-      type: "error",
-      message: `Transformer 노드 실행 실패: ${errorMessage}`,
-    });
-
+    context.onNodeResult?.(
+      node.id,
+      node.type,
+      {
+        type: "error",
+        error: error instanceof Error ? error.message : String(error),
+      },
+      "Transformer 노드 실행 실패"
+    );
     throw error;
   }
 }
@@ -718,14 +705,15 @@ async function executeEndNode(
     }
   }
 
-  context.addExecutionLog({
-    nodeId: node.id,
-    nodeType: node.type,
-    type: "info",
-    message: `End 노드 입력 데이터`,
-    data: inputs,
-  });
-
+  context.onNodeResult?.(
+    node.id,
+    node.type,
+    {
+      type: "start",
+      input: inputs,
+    },
+    "End 노드 실행 시작"
+  );
   // output_type에 따른 최종 결과 구성
   let finalOutput: any;
 
@@ -747,13 +735,15 @@ async function executeEndNode(
     };
   }
 
-  context.addExecutionLog({
-    nodeId: node.id,
-    nodeType: node.type,
-    type: "complete",
-    message: `워크플로우 실행 완료`,
-    data: finalOutput,
-  });
+  context.onNodeResult?.(
+    node.id,
+    node.type,
+    {
+      type: "complete",
+      output: finalOutput,
+    },
+    "End 노드 실행 완료"
+  );
 
   return finalOutput;
 }
@@ -805,15 +795,15 @@ async function executeRAGNode(
     }
   }
 
-  // 3. 입력 데이터 로깅
-  context.addExecutionLog({
-    nodeId: node.id,
-    nodeType: node.type,
-    type: "info",
-    message: `RAG 노드 입력 데이터`,
-    data: inputs,
-  });
-
+  context.onNodeResult?.(
+    node.id,
+    node.type,
+    {
+      type: "start",
+      input: inputs,
+    },
+    "RAG 노드 실행 시작"
+  );
   try {
     // 4. Storage ID 확인
     if (!nodeData?.storage_id) {
@@ -846,13 +836,19 @@ async function executeRAGNode(
       requestBody.filter_metadata = nodeData.filter_metadata;
     }
 
-    context.addExecutionLog({
-      nodeId: node.id,
-      nodeType: node.type,
-      type: "info",
-      message: `RAG 검색 시작`,
-      data: { storage_id: nodeData.storage_id, ...requestBody },
-    });
+    context.onNodeResult?.(
+      node.id,
+      node.type,
+      {
+        type: "search_start",
+        data: {
+          storage_id: nodeData.storage_id,
+          query,
+          top_k: nodeData.top_k,
+        },
+      },
+      "RAG 노드 검색 시작"
+    );
 
     const accessToken = context.getAccessToken
       ? await context.getAccessToken()
@@ -878,36 +874,21 @@ async function executeRAGNode(
     // API 응답에서 result 추출 (문자열 형태)
     const result = data.data?.context || data.context || "";
 
-    context.addExecutionLog({
-      nodeId: node.id,
-      nodeType: node.type,
-      type: "info",
-      message: `RAG 검색 완료`,
-      data: { result_length: result.length },
+    context.onNodeResult?.(node.id, node.type, {
+      type: "search_complete",
+      data: {
+        result_length: result.length,
+      },
     });
 
-    // 7. 완료 로깅
-    context.addExecutionLog({
-      nodeId: node.id,
-      nodeType: node.type,
+    context.onNodeResult?.(node.id, node.type, {
       type: "complete",
-      message: `RAG 노드 실행 완료`,
-      data: result,
+      result,
     });
 
     // 결과를 문자열로 반환
     return result;
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-
-    // 8. 에러 로깅
-    context.addExecutionLog({
-      nodeId: node.id,
-      nodeType: node.type,
-      type: "error",
-      message: `RAG 노드 실행 실패: ${errorMessage}`,
-    });
-
     throw error;
   }
 }
@@ -954,14 +935,16 @@ async function executeStateNode(
       try {
         value = evaluateCEL(update.binding, celContext);
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
+        context.onNodeResult?.(
+          node.id,
+          node.type,
+          {
+            type: "error",
+            error: error instanceof Error ? error.message : String(error),
+          },
+          "State 노드 바인딩 평가 실패"
+        );
         console.warn(`[State 노드] 바인딩 평가 실패: ${update.binding}`, error);
-        context.addExecutionLog({
-          nodeId: node.id,
-          nodeType: node.type,
-          type: "warning",
-          message: `바인딩 평가 실패: "${update.binding}" - ${message}`,
-        });
         continue;
       }
     } else {
@@ -972,13 +955,18 @@ async function executeStateNode(
     // 전역 상태에 저장
     globalState.set(update.key, value);
 
-    context.addExecutionLog({
-      nodeId: node.id,
-      nodeType: node.type,
-      type: "info",
-      message: `상태 설정: state.${update.key}`,
-      data: { key: update.key, value },
-    });
+    context.onNodeResult?.(
+      node.id,
+      node.type,
+      {
+        type: "state_update",
+        data: {
+          key: update.key,
+          value,
+        },
+      },
+      "State 노드 상태 업데이트"
+    );
   }
 
   // 설정된 상태를 객체로 반환 (디버깅용)
@@ -986,6 +974,15 @@ async function executeStateNode(
   for (const [key, value] of globalState.entries()) {
     result[key] = value;
   }
+  context.onNodeResult?.(
+    node.id,
+    node.type,
+    {
+      type: "done",
+      output: result,
+    },
+    "State 노드 실행 완료"
+  );
   return result;
 }
 
@@ -1040,12 +1037,6 @@ async function executeInternalLoopGraph(
 
     if (toLoopEndEdge) {
       // Loop 끝에 도달
-      context.addExecutionLog({
-        nodeId: loopNodeId,
-        nodeType: "loop",
-        type: "info",
-        message: `Loop 내부 끝에 도달`,
-      });
       break;
     }
 
@@ -1098,11 +1089,11 @@ async function executeLoopNode(
   const actualLoopStartHandleId = loopStartHandleId || `${node.id}-loop-start`;
   const actualLoopEndHandleId = loopEndHandleId || `${node.id}-loop-end`;
 
-  context.addExecutionLog({
-    nodeId: node.id,
-    nodeType: node.type,
-    type: "info",
-    message: `Loop 시작 (최대 ${maxIterations}회)`,
+  context.onNodeResult?.(node.id, node.type, {
+    type: "start",
+    data: {
+      maxIterations,
+    },
   });
 
   // Loop 내부 시작 핸들에서 나가는 엣지 찾기
@@ -1111,12 +1102,15 @@ async function executeLoopNode(
   );
 
   if (!loopStartEdge) {
-    context.addExecutionLog({
-      nodeId: node.id,
-      nodeType: node.type,
-      type: "warning",
-      message: "Loop 내부 시작 핸들에 연결된 노드가 없습니다",
-    });
+    context.onNodeResult?.(
+      node.id,
+      node.type,
+      {
+        type: "error",
+        error: "Loop 내부 시작 핸들에 연결된 노드가 없습니다",
+      },
+      "Loop 노드 실행 실패"
+    );
     return { selectedHandleId: `${node.id}-exit`, iterations: 0 };
   }
 
@@ -1126,12 +1120,18 @@ async function executeLoopNode(
   let iteration = 0;
 
   for (iteration = 1; iteration <= maxIterations; iteration++) {
-    context.addExecutionLog({
-      nodeId: node.id,
-      nodeType: node.type,
-      type: "info",
-      message: `Loop 반복 ${iteration}/${maxIterations} 시작`,
-    });
+    context.onNodeResult?.(
+      node.id,
+      node.type,
+      {
+        type: "iteration_start",
+        data: {
+          iteration,
+          maxIterations,
+        },
+      },
+      `Loop 노드 반복 시작 - ${iteration} / ${maxIterations}`
+    );
 
     // Loop 내부 노드 그래프 실행
     try {
@@ -1144,21 +1144,28 @@ async function executeLoopNode(
         edges
       );
 
-      context.addExecutionLog({
-        nodeId: node.id,
-        nodeType: node.type,
-        type: "info",
-        message: `Loop 반복 ${iteration}/${maxIterations} 완료`,
-      });
+      context.onNodeResult?.(
+        node.id,
+        node.type,
+        {
+          type: "iteration_done",
+          data: {
+            iteration,
+            maxIterations,
+          },
+        },
+        "Loop 노드 반복 완료"
+      );
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      context.addExecutionLog({
-        nodeId: node.id,
-        nodeType: node.type,
-        type: "error",
-        message: `Loop 내부 실행 실패 (${iteration}회차): ${errorMessage}`,
-      });
+      context.onNodeResult?.(
+        node.id,
+        node.type,
+        {
+          type: "error",
+          error: error instanceof Error ? error.message : String(error),
+        },
+        "Loop 노드 반복 실패"
+      );
       throw error;
     }
 
@@ -1191,31 +1198,33 @@ async function executeLoopNode(
           evaluationContext
         );
 
-        context.addExecutionLog({
-          nodeId: node.id,
-          nodeType: node.type,
-          type: "info",
-          message: `Exit condition 평가: ${exitCondition.expression} => ${shouldExit}`,
-        });
-
         if (shouldExit) {
-          context.addExecutionLog({
-            nodeId: node.id,
-            nodeType: node.type,
-            type: "complete",
-            message: `Loop 종료 - exit condition 만족 (${iteration}회 반복)`,
-          });
+          context.onNodeResult?.(
+            node.id,
+            node.type,
+            {
+              type: "done",
+              data: {
+                reason: "exit_condition",
+                iterations: iteration,
+              },
+            },
+            "Loop 노드 반복 완료"
+          );
+
           return { selectedHandleId: `${node.id}-exit`, iterations: iteration };
         }
       } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
-        context.addExecutionLog({
-          nodeId: node.id,
-          nodeType: node.type,
-          type: "error",
-          message: `Exit condition 평가 실패: ${errorMessage}`,
-        });
+        // Exit condition 평가 실패 시 계속 진행
+        context.onNodeResult?.(
+          node.id,
+          node.type,
+          {
+            type: "condition_evaluation_error",
+            error: error instanceof Error ? error.message : String(error),
+          },
+          "Loop 노드 반복 Exit condition 평가 실패"
+        );
       }
     }
 
@@ -1223,12 +1232,18 @@ async function executeLoopNode(
   }
 
   // 최대 반복 횟수 도달
-  context.addExecutionLog({
-    nodeId: node.id,
-    nodeType: node.type,
-    type: "complete",
-    message: `Loop 종료 - 최대 반복 횟수 도달 (${maxIterations}회)`,
-  });
+  context.onNodeResult?.(
+    node.id,
+    node.type,
+    {
+      type: "done",
+      data: {
+        reason: "max_iterations",
+        iterations: maxIterations,
+      },
+    },
+    "Loop 노드 반복 완료"
+  );
 
   return {
     selectedHandleId: `${node.id}-max-reached`,
@@ -1273,11 +1288,11 @@ async function executeConditionNode(
   for (let i = 0; i < conditions.length; i++) {
     const condition = conditions[i];
 
-    context.addExecutionLog({
-      nodeId: node.id,
-      nodeType: node.type,
-      type: "info",
-      message: `조건 ${i + 1} 평가: ${condition.label || `조건 ${i + 1}`}`,
+    context.onNodeResult?.(node.id, node.type, {
+      type: "condition_evaluating",
+      conditionIndex: i,
+      conditionLabel: condition.label,
+      expression: condition.expression,
     });
 
     try {
@@ -1286,50 +1301,42 @@ async function executeConditionNode(
         console.warn(
           `[조건 평가] 조건 ${i + 1}의 표현식이 비어있어 건너뜁니다`
         );
-        context.addExecutionLog({
-          nodeId: node.id,
-          nodeType: node.type,
-          type: "warning",
-          message: `조건 ${i + 1}의 표현식이 비어있습니다`,
-        });
         continue;
       }
 
       // 조건 평가
       const result = evaluateCondition(condition.expression, evaluationContext);
 
-      context.addExecutionLog({
-        nodeId: node.id,
-        nodeType: node.type,
-        type: "info",
-        message: `조건 ${i + 1} 평가 결과: ${result}`,
-        data: { expression: condition.expression, result },
-      });
-
       // true인 조건을 찾으면 해당 출력 핸들 ID 반환
       if (result) {
-        context.addExecutionLog({
-          nodeId: node.id,
-          nodeType: node.type,
-          type: "complete",
-          message: `조건 ${i + 1}이 true - "${condition.label}" 경로 선택`,
-        });
+        context.onNodeResult?.(
+          node.id,
+          node.type,
+          {
+            type: "condition_matched",
+            data: {
+              conditionIndex: i,
+              conditionLabel: condition.label,
+              selectedHandleId: condition.outputHandleId,
+            },
+          },
+          "조건 노드 조건 매칭"
+        );
 
         return { selectedHandleId: condition.outputHandleId };
       }
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      console.error(`[조건 평가 실패] 조건 ${i + 1}:`, errorMessage);
-
-      context.addExecutionLog({
-        nodeId: node.id,
-        nodeType: node.type,
-        type: "error",
-        message: `조건 ${i + 1} 평가 실패: ${errorMessage}`,
-      });
-
+      console.error(`[조건 평가 실패] 조건 ${i + 1}:`, error);
       // 조건 평가 실패 시 다음 조건으로 계속 진행
+      context.onNodeResult?.(
+        node.id,
+        node.type,
+        {
+          type: "condition_evaluation_error",
+          error: error instanceof Error ? error.message : String(error),
+        },
+        "조건 노드 조건 평가 실패(Exit condition)"
+      );
       continue;
     }
   }
@@ -1337,13 +1344,6 @@ async function executeConditionNode(
   // 3. 모든 조건이 false면 기본(else) 출력 핸들 선택
   const defaultHandleId =
     node.data.nodeData?.defaultOutputHandleId || `${node.id}-output-default`;
-
-  context.addExecutionLog({
-    nodeId: node.id,
-    nodeType: node.type,
-    type: "complete",
-    message: "모든 조건이 false - else(기본) 경로 선택",
-  });
 
   return { selectedHandleId: defaultHandleId };
 }
@@ -1362,13 +1362,14 @@ async function executeUploadNode(
 
   const nodeData = node.data;
 
-  context.addExecutionLog({
-    nodeId: node.id,
-    nodeType: node.type,
-    type: "info",
-    message: "파일 업로드 노드 실행",
-    data: { config: nodeData.nodeData },
-  });
+  context.onNodeResult?.(
+    node.id,
+    node.type,
+    {
+      type: "start",
+    },
+    "Upload 노드 실행 시작"
+  );
 
   try {
     // 노드 데이터에서 미리 업로드된 파일 정보 가져오기
@@ -1382,25 +1383,27 @@ async function executeUploadNode(
     // 파일 정보 반환 (fileUrl, fileName, fileType)
     const result = uploadedFile;
 
-    context.addExecutionLog({
-      nodeId: node.id,
-      nodeType: node.type,
-      type: "complete",
-      message: "파일 업로드 완료",
-      data: result,
-    });
+    context.onNodeResult?.(
+      node.id,
+      node.type,
+      {
+        type: "done",
+        output: result,
+      },
+      "Upload 노드 실행 완료"
+    );
 
     return result;
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-
-    context.addExecutionLog({
-      nodeId: node.id,
-      nodeType: node.type,
-      type: "error",
-      message: `파일 업로드 실패: ${errorMessage}`,
-    });
-
+    context.onNodeResult?.(
+      node.id,
+      node.type,
+      {
+        type: "error",
+        error: error instanceof Error ? error.message : String(error),
+      },
+      "Upload 노드 실행 실패"
+    );
     throw error;
   }
 }
@@ -1535,14 +1538,19 @@ export async function executeWorkflow<
       console.error(`[에러] 노드를 찾을 수 없음: ${nodeId}`);
       return;
     }
-
-    // 실행 시작 로그
-    context.addExecutionLog({
-      nodeId: node.id,
-      nodeType: node.type,
-      type: "start",
-      message: `${node.type} 노드 실행 시작: ${node.data.label || node.id}`,
-    });
+    context.onNodeResult?.(
+      node.id,
+      node.type,
+      {
+        type: "node_start",
+        data: {
+          nodeId,
+          nodeType: node.type,
+          nodeLabel: node.data.label || node.id,
+        },
+      },
+      `${node.type} 노드 실행 시작: ${node.data.label || node.id}`
+    );
 
     try {
       // 노드 실행 (Start 노드인 경우에만 initialInputs 전달)
@@ -1557,14 +1565,20 @@ export async function executeWorkflow<
       // 출력 저장 - nodeOutputs Map에 직접 저장
       context.state.execution.nodeOutputs.set(nodeId, output);
 
-      // 완료 로그 추가
-      context.addExecutionLog({
-        nodeId: node.id,
-        nodeType: node.type,
-        type: "complete",
-        message: `${node.type} 노드 실행 완료: ${node.data.label || node.id}`,
-        data: output,
-      });
+      context.onNodeResult?.(
+        node.id,
+        node.type,
+        {
+          type: "node_end",
+          output: output,
+          data: {
+            nodeId,
+            nodeType: node.type,
+            nodeLabel: node.data.label || node.id,
+          },
+        },
+        `${node.type} 노드 실행 완료: ${node.data.label || node.id}`
+      );
 
       // End 노드이면 최종 결과 저장
       if (node.type === "end") {
@@ -1609,16 +1623,16 @@ export async function executeWorkflow<
       );
     } catch (error) {
       console.error(`[에러] 노드 실행 실패: ${nodeId}`, error);
-      const errorMessage = `노드 실행 실패 (${node.data.label || nodeId}): ${
-        error instanceof Error ? error.message : String(error)
-      }`;
-      context.addExecutionLog({
-        nodeId: node.id,
-        nodeType: node.type,
-        type: "error",
-        message: errorMessage,
-      });
       // toast는 최상위에서 한 번만 표시하도록 throw만 수행
+      context.onNodeResult?.(
+        node.id,
+        node.type,
+        {
+          type: "error",
+          error: error instanceof Error ? error.message : String(error),
+        },
+        "노드 실행 실패"
+      );
       throw error;
     }
   }

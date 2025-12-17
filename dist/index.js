@@ -534,9 +534,19 @@ async function executeLlmNode(node, context, edges, allNodes) {
                 break;
               case "token":
                 accumulatedMessage += event.content;
+                context.onNodeResult?.(node.id, node.type, {
+                  type: "token",
+                  content: event.content,
+                  accumulated: accumulatedMessage
+                });
                 break;
               case "thinking":
                 accumulatedThinking += event.content;
+                context.onNodeResult?.(node.id, node.type, {
+                  type: "thinking",
+                  content: event.content,
+                  accumulated: accumulatedThinking
+                });
                 break;
               case "progress":
                 context.addExecutionLog({
@@ -544,6 +554,10 @@ async function executeLlmNode(node, context, edges, allNodes) {
                   nodeType: node.type,
                   type: "info",
                   message: event.content
+                });
+                context.onNodeResult?.(node.id, node.type, {
+                  type: "progress",
+                  content: event.content
                 });
                 break;
               case "final_response":
@@ -1463,6 +1477,7 @@ var WorkflowExecutionContext = class {
     this.addExecutionLog = options?.addExecutionLog || ((logs) => {
       console.log(`[${logs.nodeType}] ${logs.message}`);
     });
+    this.onNodeResult = options?.onNodeResult;
     this.executeCodeCallback = options?.executeCodeCallback;
     this.baseURL = options?.baseURL;
     this.getAccessToken = options?.getAccessToken;
