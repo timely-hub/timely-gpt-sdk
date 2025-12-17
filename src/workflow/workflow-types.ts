@@ -44,6 +44,7 @@ export interface WorkflowContextOptions {
   executeCodeCallback?: ExecuteCodeCallback;
   baseURL?: string;
   getAccessToken?: () => Promise<string>;
+  useStreamProxy?: boolean; // true면 /api/stream 사용, false면 직접 호출
 }
 
 export class WorkflowExecutionContext {
@@ -60,6 +61,7 @@ export class WorkflowExecutionContext {
   public executeCodeCallback?: ExecuteCodeCallback;
   public baseURL?: string;
   public getAccessToken?: () => Promise<string>;
+  public useStreamProxy?: boolean;
 
   private _addExecutionLog?: (logs: Omit<ExecutionLog, "timestamp">) => void;
 
@@ -80,6 +82,7 @@ export class WorkflowExecutionContext {
     this.executeCodeCallback = options?.executeCodeCallback;
     this.baseURL = options?.baseURL;
     this.getAccessToken = options?.getAccessToken;
+    this.useStreamProxy = options?.useStreamProxy;
     this._addExecutionLog = options?.addExecutionLog;
   }
 

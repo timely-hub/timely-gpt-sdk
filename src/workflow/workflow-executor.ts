@@ -232,22 +232,44 @@ async function executeLlmNode(
       checkpointId: string | null = null,
       baseURL: string
     ): Promise<void> => {
-      const accessToken = context.getAccessToken
-        ? await context.getAccessToken()
-        : "master";
+      let response: Response;
 
-      const response = await fetch(`${baseURL}/llm-completion`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          ...requestBody,
-          checkpoint_id: checkpointId,
-          stream: true,
-        }),
-      });
+      if (context.useStreamProxy) {
+        // Use /api/stream proxy for browser environments
+        const formData = new FormData();
+        formData.append("url", "/api-ai/v2/llm-completion");
+        formData.append(
+          "body",
+          JSON.stringify({
+            ...requestBody,
+            checkpoint_id: checkpointId,
+            stream: true,
+          })
+        );
+
+        response = await fetch("/api/stream", {
+          method: "POST",
+          body: formData,
+        });
+      } else {
+        // Direct API call for SDK usage
+        const accessToken = context.getAccessToken
+          ? await context.getAccessToken()
+          : "master";
+
+        response = await fetch(`${baseURL}/llm-completion`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({
+            ...requestBody,
+            checkpoint_id: checkpointId,
+            stream: true,
+          }),
+        });
+      }
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -275,7 +297,9 @@ async function executeLlmNode(
         buffer = lines.pop() || "";
 
         for (const line of lines) {
-          if (!line.trim() || !line.startsWith("data: ")) continue;
+          if (!line.trim() || !line.startsWith("data: ")) {
+            continue;
+          }
 
           const data = line.slice(6);
           try {
