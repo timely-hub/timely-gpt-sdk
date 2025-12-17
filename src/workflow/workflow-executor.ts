@@ -1367,7 +1367,9 @@ async function executeNode(
  * 워크플로우 실행 엔진
  * @template TNodeType - The node type to use (must extend AIWorkflowNodeType)
  */
-export async function executeWorkflow<TNodeType extends AIWorkflowNodeType = AIWorkflowNodeType>(
+export async function executeWorkflow<
+  TNodeType extends AIWorkflowNodeType = AIWorkflowNodeType,
+>(
   nodes: TNodeType[],
   edges: AIWorkflowEdgeType[],
   context: WorkflowContextType,

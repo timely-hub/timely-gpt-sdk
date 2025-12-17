@@ -1,6 +1,6 @@
 {
   "name": "@timely/gpt-sdk",
-  "version": "1.1.0",
+  "version": "1.1.01",
   "description": "Official TypeScript SDK for Timely GPT API",
   "repository": {
     "type": "git",

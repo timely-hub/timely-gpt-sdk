@@ -40,7 +40,7 @@ export interface WorkflowContextOptions {
   getAccessToken?: () => Promise<string>;
 }
 
-export class WorkflowContext {
+export class WorkflowExecutionContext {
   private _state: {
     execution: WorkflowExecutionState;
   };
@@ -94,7 +94,7 @@ export class WorkflowContext {
 }
 
 // Legacy type for backward compatibility
-export type WorkflowContextType = WorkflowContext;
+export type WorkflowContextType = WorkflowExecutionContext;
 export type AIWorkflowNodeDataCommon = {
   label: string;
   id?: string | null;
@@ -132,7 +132,7 @@ export type AIWorkflowResponseData = {
 
 export type WorkflowNodeType<
   NodeType extends string | undefined = string | undefined,
-  NodeData extends Record<string, unknown> = Record<string, unknown>
+  NodeData extends Record<string, unknown> = Record<string, unknown>,
 > = Node<NodeData & AIWorkflowNodeDataCommon, NodeType>;
 
 // Generic type for workflow nodes - can accept specific node data types
@@ -148,4 +148,4 @@ export type AIWorkflowNodeType<TNodeData = any> = WorkflowNodeType<
 export type AIWorkflowEdgeType = Edge<Record<string, unknown>, "custom">;
 
 // Default workflow context instance
-export const WORKFLOW_CONTEXT = new WorkflowContext();
+export const WORKFLOW_CONTEXT = new WorkflowExecutionContext();

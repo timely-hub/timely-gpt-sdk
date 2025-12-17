@@ -1,5 +1,5 @@
 // This file is auto-generated. Do not edit manually.
-// Generated at: 2025-12-16T09:05:26.669Z
+// Generated at: 2025-12-17T04:21:05.368Z
 
 /**
  * Available model types from Timely GPT API

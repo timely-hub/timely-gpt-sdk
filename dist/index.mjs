@@ -1349,7 +1349,7 @@ async function executeWorkflow(nodes, edges, context, initialInputs) {
 }
 
 // src/workflow/workflow-types.ts
-var WorkflowContext = class {
+var WorkflowExecutionContext = class {
   constructor(options) {
     this._state = {
       execution: {
@@ -1386,7 +1386,7 @@ var WorkflowContext = class {
     };
   }
 };
-var WORKFLOW_CONTEXT = new WorkflowContext();
+var WORKFLOW_CONTEXT = new WorkflowExecutionContext();
 
 // src/resources/workflow.ts
 var Workflow = class {
@@ -1544,7 +1544,7 @@ var Workflow = class {
    */
   async run(workflowId, initialInputs, options) {
     const workflowData = await this.fetch(workflowId);
-    const context = new WorkflowContext({
+    const context = new WorkflowExecutionContext({
       addExecutionLog: options?.addExecutionLog,
       executeCodeCallback: options?.executeCodeCallback,
       baseURL: this.baseURL,
@@ -1655,7 +1655,7 @@ export {
   AVAILABLE_MODELS,
   Stream,
   TimelyGPTClient,
-  WorkflowContext,
+  WorkflowExecutionContext as WorkflowContext,
   index_default as default,
   executeWorkflow
 };

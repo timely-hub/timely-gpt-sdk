@@ -489,7 +489,7 @@ interface WorkflowContextOptions {
     baseURL?: string;
     getAccessToken?: () => Promise<string>;
 }
-declare class WorkflowContext {
+declare class WorkflowExecutionContext {
     private _state;
     addExecutionLog: (logs: Omit<ExecutionLog, "timestamp">) => void;
     executeCodeCallback?: ExecuteCodeCallback;
@@ -501,7 +501,7 @@ declare class WorkflowContext {
     };
     resetExecution(): void;
 }
-type WorkflowContextType = WorkflowContext;
+type WorkflowContextType = WorkflowExecutionContext;
 type AIWorkflowNodeDataCommon = {
     label: string;
     id?: string | null;
@@ -748,4 +748,4 @@ declare class TimelyGPTClient {
     constructor(options?: TimelyGPTClientOptions);
 }
 
-export { type AIWorkflowEdgeType, type AIWorkflowNodeType, APIError, AVAILABLE_MODELS, type AuthResponse, type ChatModelNode, type ChatType, type CompletionRequest, type CompletionResponse, type Configurable, type CustomToolInfo, type ErrorResponse, type ExecuteCodeCallback, type ExecutionLog, type Message, type MessageRole, type ModelType, type RunWorkflowOptions, Stream, type StreamEvent, type StreamEventType, TimelyGPTClient, type TimelyGPTClientOptions, type ToolCall, type UserLocation, WorkflowContext, type WorkflowContextOptions, type WorkflowExecutionState, type WorkflowListItem, type WorkflowListParams, type WorkflowListResponse, type WorkflowResponse, type WorkflowStartParams, TimelyGPTClient as default, executeWorkflow };
+export { type AIWorkflowEdgeType, type AIWorkflowNodeType, APIError, AVAILABLE_MODELS, type AuthResponse, type ChatModelNode, type ChatType, type CompletionRequest, type CompletionResponse, type Configurable, type CustomToolInfo, type ErrorResponse, type ExecuteCodeCallback, type ExecutionLog, type Message, type MessageRole, type ModelType, type RunWorkflowOptions, Stream, type StreamEvent, type StreamEventType, TimelyGPTClient, type TimelyGPTClientOptions, type ToolCall, type UserLocation, WorkflowExecutionContext as WorkflowContext, type WorkflowContextOptions, type WorkflowExecutionState, type WorkflowListItem, type WorkflowListParams, type WorkflowListResponse, type WorkflowResponse, type WorkflowStartParams, TimelyGPTClient as default, executeWorkflow };

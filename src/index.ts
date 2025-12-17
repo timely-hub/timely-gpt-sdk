@@ -15,7 +15,7 @@ export type { ModelType } from "./generated/models";
 
 // Export workflow types and executor
 export { executeWorkflow } from "./workflow/workflow-executor";
-export { WorkflowContext } from "./workflow/workflow-types";
+export { WorkflowExecutionContext as WorkflowContext } from "./workflow/workflow-types";
 export type {
   AIWorkflowEdgeType,
   AIWorkflowNodeType,
@@ -101,10 +101,14 @@ export class TimelyGPTClient {
    * ```
    */
   constructor(options: TimelyGPTClientOptions = {}) {
-    const apiKey = options.apiKey || (typeof process !== 'undefined' ? process.env.TIMELY_API_KEY : undefined);
+    const apiKey =
+      options.apiKey ||
+      (typeof process !== "undefined" ? process.env.TIMELY_API_KEY : undefined);
     const baseURL =
       options.baseURL ||
-      (typeof process !== 'undefined' ? process.env.TIMELY_BASE_URL : undefined) ||
+      (typeof process !== "undefined"
+        ? process.env.TIMELY_BASE_URL
+        : undefined) ||
       "https://hello.timelygpt.co.kr/api/v2/chat";
 
     if (!apiKey) {

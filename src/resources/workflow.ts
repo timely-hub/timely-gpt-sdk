@@ -7,7 +7,7 @@ import type {
   AIWorkflowResponseData,
   WorkflowContextOptions,
 } from "../workflow/workflow-types";
-import { WorkflowContext } from "../workflow/workflow-types";
+import { WorkflowExecutionContext } from "../workflow/workflow-types";
 
 export interface WorkflowResponse {
   success: boolean;
@@ -264,7 +264,7 @@ export class Workflow {
     const workflowData = await this.fetch(workflowId);
 
     // Initialize workflow context with options
-    const context = new WorkflowContext({
+    const context = new WorkflowExecutionContext({
       addExecutionLog: options?.addExecutionLog,
       executeCodeCallback: options?.executeCodeCallback,
       baseURL: this.baseURL,
