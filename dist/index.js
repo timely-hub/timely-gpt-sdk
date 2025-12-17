@@ -355,13 +355,15 @@ async function executeStartNode(node, context, initialInputs) {
     // Start 노드의 초기 입력 데이터
     ...initialInputs
   };
-  context.addExecutionLog({
-    nodeId: node.id,
-    nodeType: node.type,
-    type: "complete",
-    message: `Start \uB178\uB4DC \uC2E4\uD589 \uC644\uB8CC`,
-    data: output
-  });
+  context.onNodeResult?.(
+    node.id,
+    node.type,
+    {
+      type: "start",
+      input: initialInputs
+    },
+    "Start \uB178\uB4DC \uC2E4\uD589 \uC2DC\uC791"
+  );
   return output;
 }
 async function executeToolNode(node, context, allNodes) {
@@ -372,13 +374,15 @@ async function executeToolNode(node, context, allNodes) {
     allNodes,
     context.state.execution.globalState
   );
-  context.addExecutionLog({
-    nodeId: node.id,
-    nodeType: node.type,
-    type: "info",
-    message: `Tool \uB178\uB4DC \uC785\uB825 \uB370\uC774\uD130`,
-    data: inputs
-  });
+  context.onNodeResult?.(
+    node.id,
+    node.type,
+    {
+      type: "start",
+      input: inputs
+    },
+    "Tool \uB178\uB4DC \uC2E4\uD589 \uC2DC\uC791"
+  );
   let result = null;
   try {
     const nodeData = node.data.nodeData;
@@ -430,22 +434,17 @@ async function executeToolNode(node, context, allNodes) {
     } else if (nodeData.type === "mcp") {
       throw new Error("MCP \uB3C4\uAD6C \uC2E4\uD589\uC740 \uC544\uC9C1 \uC9C0\uC6D0\uB418\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4");
     }
-    context.addExecutionLog({
-      nodeId: node.id,
-      nodeType: node.type,
-      type: "complete",
-      message: `Tool \uB178\uB4DC \uC2E4\uD589 \uC644\uB8CC`,
-      data: result
-    });
+    context.onNodeResult?.(
+      node.id,
+      node.type,
+      {
+        type: "done",
+        output: result
+      },
+      "Tool \uB178\uB4DC \uC2E4\uD589 \uC644\uB8CC"
+    );
     return result;
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    context.addExecutionLog({
-      nodeId: node.id,
-      nodeType: node.type,
-      type: "error",
-      message: `Tool \uB178\uB4DC \uC2E4\uD589 \uC2E4\uD328: ${errorMessage}`
-    });
     throw error;
   }
 }
@@ -473,13 +472,15 @@ async function executeLlmNode(node, context, edges, allNodes) {
       }
     }
   }
-  context.addExecutionLog({
-    nodeId: node.id,
-    nodeType: node.type,
-    type: "info",
-    message: `LLM \uB178\uB4DC \uC785\uB825 \uB370\uC774\uD130`,
-    data: inputs
-  });
+  context.onNodeResult?.(
+    node.id,
+    node.type,
+    {
+      type: "start",
+      input: inputs
+    },
+    "LLM \uB178\uB4DC \uC2E4\uD589 \uC2DC\uC791"
+  );
   try {
     const nodeData = node.data.nodeData;
     const chatModelNodeId = nodeData.id;
@@ -523,42 +524,26 @@ async function executeLlmNode(node, context, edges, allNodes) {
           const data = line.slice(6);
           try {
             const event = JSON.parse(data);
+            console.log("event", event);
+            context.onNodeResult?.(
+              node.id,
+              node.type,
+              {
+                type: "stream",
+                data: event
+              },
+              "LLM \uB178\uB4DC \uC2A4\uD2B8\uB9AC\uBC0D \uC774\uBCA4\uD2B8"
+            );
             switch (event.type) {
               case "start":
-                context.addExecutionLog({
-                  nodeId: node.id,
-                  nodeType: node.type,
-                  type: "info",
-                  message: "LLM \uC751\uB2F5 \uC2DC\uC791"
-                });
                 break;
               case "token":
                 accumulatedMessage += event.content;
-                context.onNodeResult?.(node.id, node.type, {
-                  type: "token",
-                  content: event.content,
-                  accumulated: accumulatedMessage
-                });
                 break;
               case "thinking":
                 accumulatedThinking += event.content;
-                context.onNodeResult?.(node.id, node.type, {
-                  type: "thinking",
-                  content: event.content,
-                  accumulated: accumulatedThinking
-                });
                 break;
               case "progress":
-                context.addExecutionLog({
-                  nodeId: node.id,
-                  nodeType: node.type,
-                  type: "info",
-                  message: event.content
-                });
-                context.onNodeResult?.(node.id, node.type, {
-                  type: "progress",
-                  content: event.content
-                });
                 break;
               case "final_response":
                 hasFinalResponse = true;
@@ -569,16 +554,6 @@ async function executeLlmNode(node, context, edges, allNodes) {
                 if (event.parsed) {
                   parsedOutput = event.parsed;
                 }
-                context.addExecutionLog({
-                  nodeId: node.id,
-                  nodeType: node.type,
-                  type: "info",
-                  message: "\uCD5C\uC885 \uC751\uB2F5 \uC218\uC2E0",
-                  data: {
-                    messageLength: event.message?.length || 0,
-                    thinking: accumulatedThinking ? `(${accumulatedThinking.length} chars)` : void 0
-                  }
-                });
                 break;
               case "end":
                 if (!hasFinalResponse && accumulatedMessage) {
@@ -591,13 +566,6 @@ async function executeLlmNode(node, context, edges, allNodes) {
               case "error":
                 throw new Error(event.message || event.error);
               case "tool_call_required":
-                context.addExecutionLog({
-                  nodeId: node.id,
-                  nodeType: node.type,
-                  type: "info",
-                  message: `\uB3C4\uAD6C \uD638\uCD9C \uD544\uC694`,
-                  data: event.tool_calls
-                });
                 const toolResults = await Promise.all(
                   event.tool_calls.map(async (toolCall) => {
                     let result2;
@@ -605,7 +573,9 @@ async function executeLlmNode(node, context, edges, allNodes) {
                       (t) => t.name === toolCall.name
                     );
                     if (!tool) {
-                      result2 = JSON.stringify({ error: "\uB3C4\uAD6C\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4" });
+                      result2 = JSON.stringify({
+                        error: "\uB3C4\uAD6C\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4"
+                      });
                     } else if (tool.type === "custom") {
                       const execResult = await executeCode(
                         tool.functionCode || "",
@@ -632,13 +602,17 @@ async function executeLlmNode(node, context, edges, allNodes) {
                         }
                       );
                       if (!builtInResponse.ok) {
-                        result2 = JSON.stringify({ error: "Built-in tool \uC2E4\uD589 \uC2E4\uD328" });
+                        result2 = JSON.stringify({
+                          error: "Built-in tool \uC2E4\uD589 \uC2E4\uD328"
+                        });
                       } else {
                         const builtInData = await builtInResponse.json();
                         result2 = builtInData.data.output;
                       }
                     } else {
-                      result2 = JSON.stringify({ error: "\uC9C0\uC6D0\uD558\uC9C0 \uC54A\uB294 \uB3C4\uAD6C \uD0C0\uC785" });
+                      result2 = JSON.stringify({
+                        error: "\uC9C0\uC6D0\uD558\uC9C0 \uC54A\uB294 \uB3C4\uAD6C \uD0C0\uC785"
+                      });
                     }
                     return {
                       role: "tool",
@@ -648,13 +622,6 @@ async function executeLlmNode(node, context, edges, allNodes) {
                     };
                   })
                 );
-                context.addExecutionLog({
-                  nodeId: node.id,
-                  nodeType: node.type,
-                  type: "info",
-                  message: `\uB3C4\uAD6C \uC2E4\uD589 \uC644\uB8CC`,
-                  data: toolResults
-                });
                 await processStream(
                   {
                     ...requestBody,
@@ -702,22 +669,17 @@ async function executeLlmNode(node, context, edges, allNodes) {
         response: allMessages.length > 0 ? allMessages[allMessages.length - 1].content : null
       };
     }
-    context.addExecutionLog({
-      nodeId: node.id,
-      nodeType: node.type,
-      type: "complete",
-      message: `LLM \uB178\uB4DC \uC2E4\uD589 \uC644\uB8CC`,
-      data: result
-    });
+    context.onNodeResult?.(
+      node.id,
+      node.type,
+      {
+        type: "done",
+        output: result
+      },
+      "LLM \uB178\uB4DC \uC2E4\uD589 \uC644\uB8CC"
+    );
     return result;
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    context.addExecutionLog({
-      nodeId: node.id,
-      nodeType: node.type,
-      type: "error",
-      message: `LLM \uB178\uB4DC \uC2E4\uD589 \uC2E4\uD328: ${errorMessage}`
-    });
     throw error;
   }
 }
@@ -751,13 +713,16 @@ async function executeTransformerNode(node, context, allNodes, edges) {
         }
       });
     }
-    context.addExecutionLog({
-      nodeId: node.id,
-      nodeType: node.type,
-      type: "info",
-      message: `Transformer \uB178\uB4DC \uC785\uB825 \uB370\uC774\uD130 (${sources.length}\uAC1C \uC18C\uC2A4)`,
-      data: sources
-    });
+    context.onNodeResult?.(
+      node.id,
+      node.type,
+      {
+        type: "start",
+        inputs: sources,
+        inputsCount: sources.length
+      },
+      "Transformer \uB178\uB4DC \uC2E4\uD589 \uC2DC\uC791"
+    );
     const outgoingEdge = edges.find((e) => e.source === node.id);
     const targetNode = outgoingEdge ? allNodes.find((n) => n.id === outgoingEdge.target) : null;
     if (!targetNode) {
@@ -789,22 +754,17 @@ async function executeTransformerNode(node, context, allNodes, edges) {
     }
     const data = await response.json();
     const result = data.data.result;
-    context.addExecutionLog({
-      nodeId: node.id,
-      nodeType: node.type,
-      type: "complete",
-      message: `Transformer \uB178\uB4DC \uC2E4\uD589 \uC644\uB8CC`,
-      data: result
-    });
+    context.onNodeResult?.(
+      node.id,
+      node.type,
+      {
+        type: "done",
+        output: result
+      },
+      "Transformer \uB178\uB4DC \uC2E4\uD589 \uC644\uB8CC"
+    );
     return result;
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    context.addExecutionLog({
-      nodeId: node.id,
-      nodeType: node.type,
-      type: "error",
-      message: `Transformer \uB178\uB4DC \uC2E4\uD589 \uC2E4\uD328: ${errorMessage}`
-    });
     throw error;
   }
 }
@@ -851,13 +811,15 @@ async function executeEndNode(node, context, edges, allNodes) {
       }
     }
   }
-  context.addExecutionLog({
-    nodeId: node.id,
-    nodeType: node.type,
-    type: "info",
-    message: `End \uB178\uB4DC \uC785\uB825 \uB370\uC774\uD130`,
-    data: inputs
-  });
+  context.onNodeResult?.(
+    node.id,
+    node.type,
+    {
+      type: "start",
+      input: inputs
+    },
+    "End \uB178\uB4DC \uC2E4\uD589 \uC2DC\uC791"
+  );
   let finalOutput;
   if (nodeData.output_type === "JSON") {
     finalOutput = inputs;
@@ -869,13 +831,15 @@ async function executeEndNode(node, context, edges, allNodes) {
       timestamp: Date.now()
     };
   }
-  context.addExecutionLog({
-    nodeId: node.id,
-    nodeType: node.type,
-    type: "complete",
-    message: `\uC6CC\uD06C\uD50C\uB85C\uC6B0 \uC2E4\uD589 \uC644\uB8CC`,
-    data: finalOutput
-  });
+  context.onNodeResult?.(
+    node.id,
+    node.type,
+    {
+      type: "complete",
+      output: finalOutput
+    },
+    "End \uB178\uB4DC \uC2E4\uD589 \uC644\uB8CC"
+  );
   return finalOutput;
 }
 async function executeRAGNode(node, context, edges, allNodes) {
@@ -901,13 +865,15 @@ async function executeRAGNode(node, context, edges, allNodes) {
       }
     }
   }
-  context.addExecutionLog({
-    nodeId: node.id,
-    nodeType: node.type,
-    type: "info",
-    message: `RAG \uB178\uB4DC \uC785\uB825 \uB370\uC774\uD130`,
-    data: inputs
-  });
+  context.onNodeResult?.(
+    node.id,
+    node.type,
+    {
+      type: "start",
+      input: inputs
+    },
+    "RAG \uB178\uB4DC \uC2E4\uD589 \uC2DC\uC791"
+  );
   try {
     if (!nodeData?.storage_id) {
       throw new Error("RAG Storage\uAC00 \uC120\uD0DD\uB418\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4");
@@ -930,13 +896,19 @@ async function executeRAGNode(node, context, edges, allNodes) {
     if (nodeData.filter_metadata) {
       requestBody.filter_metadata = nodeData.filter_metadata;
     }
-    context.addExecutionLog({
-      nodeId: node.id,
-      nodeType: node.type,
-      type: "info",
-      message: `RAG \uAC80\uC0C9 \uC2DC\uC791`,
-      data: { storage_id: nodeData.storage_id, ...requestBody }
-    });
+    context.onNodeResult?.(
+      node.id,
+      node.type,
+      {
+        type: "search_start",
+        data: {
+          storage_id: nodeData.storage_id,
+          query,
+          top_k: nodeData.top_k
+        }
+      },
+      "RAG \uB178\uB4DC \uAC80\uC0C9 \uC2DC\uC791"
+    );
     const accessToken = context.getAccessToken ? await context.getAccessToken() : "master";
     const response = await fetch(
       `${context.baseURL}/ai-workflow/rag-storage-node/${nodeData.storage_id}/query`,
@@ -954,29 +926,18 @@ async function executeRAGNode(node, context, edges, allNodes) {
     }
     const data = await response.json();
     const result = data.data?.context || data.context || "";
-    context.addExecutionLog({
-      nodeId: node.id,
-      nodeType: node.type,
-      type: "info",
-      message: `RAG \uAC80\uC0C9 \uC644\uB8CC`,
-      data: { result_length: result.length }
+    context.onNodeResult?.(node.id, node.type, {
+      type: "search_complete",
+      data: {
+        result_length: result.length
+      }
     });
-    context.addExecutionLog({
-      nodeId: node.id,
-      nodeType: node.type,
+    context.onNodeResult?.(node.id, node.type, {
       type: "complete",
-      message: `RAG \uB178\uB4DC \uC2E4\uD589 \uC644\uB8CC`,
-      data: result
+      result
     });
     return result;
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    context.addExecutionLog({
-      nodeId: node.id,
-      nodeType: node.type,
-      type: "error",
-      message: `RAG \uB178\uB4DC \uC2E4\uD589 \uC2E4\uD328: ${errorMessage}`
-    });
     throw error;
   }
 }
@@ -1006,32 +967,39 @@ async function executeStateNode(node, context, allNodes, edges) {
       try {
         value = evaluateCEL(update.binding, celContext);
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
         console.warn(`[State \uB178\uB4DC] \uBC14\uC778\uB529 \uD3C9\uAC00 \uC2E4\uD328: ${update.binding}`, error);
-        context.addExecutionLog({
-          nodeId: node.id,
-          nodeType: node.type,
-          type: "warning",
-          message: `\uBC14\uC778\uB529 \uD3C9\uAC00 \uC2E4\uD328: "${update.binding}" - ${message}`
-        });
         continue;
       }
     } else {
       value = update.value;
     }
     globalState.set(update.key, value);
-    context.addExecutionLog({
-      nodeId: node.id,
-      nodeType: node.type,
-      type: "info",
-      message: `\uC0C1\uD0DC \uC124\uC815: state.${update.key}`,
-      data: { key: update.key, value }
-    });
+    context.onNodeResult?.(
+      node.id,
+      node.type,
+      {
+        type: "state_update",
+        data: {
+          key: update.key,
+          value
+        }
+      },
+      "State \uB178\uB4DC \uC0C1\uD0DC \uC5C5\uB370\uC774\uD2B8"
+    );
   }
   const result = {};
   for (const [key, value] of globalState.entries()) {
     result[key] = value;
   }
+  context.onNodeResult?.(
+    node.id,
+    node.type,
+    {
+      type: "done",
+      output: result
+    },
+    "State \uB178\uB4DC \uC2E4\uD589 \uC644\uB8CC"
+  );
   return result;
 }
 async function executeInternalLoopGraph(startNodeId, loopEndHandleId, loopNodeId, context, allNodes, edges) {
@@ -1058,12 +1026,6 @@ async function executeInternalLoopGraph(startNodeId, loopEndHandleId, loopNodeId
       (e) => e.source === currentNodeId && e.target === loopNodeId && e.targetHandle === loopEndHandleId
     );
     if (toLoopEndEdge) {
-      context.addExecutionLog({
-        nodeId: loopNodeId,
-        nodeType: "loop",
-        type: "info",
-        message: `Loop \uB0B4\uBD80 \uB05D\uC5D0 \uB3C4\uB2EC`
-      });
       break;
     }
     const outgoingEdges = edges.filter((e) => e.source === currentNodeId);
@@ -1097,33 +1059,42 @@ async function executeLoopNode(node, context, allNodes, edges) {
   } = loopNodeData.nodeData || {};
   const actualLoopStartHandleId = loopStartHandleId || `${node.id}-loop-start`;
   const actualLoopEndHandleId = loopEndHandleId || `${node.id}-loop-end`;
-  context.addExecutionLog({
-    nodeId: node.id,
-    nodeType: node.type,
-    type: "info",
-    message: `Loop \uC2DC\uC791 (\uCD5C\uB300 ${maxIterations}\uD68C)`
+  context.onNodeResult?.(node.id, node.type, {
+    type: "start",
+    data: {
+      maxIterations
+    }
   });
   const loopStartEdge = edges.find(
     (e) => e.source === node.id && e.sourceHandle === actualLoopStartHandleId
   );
   if (!loopStartEdge) {
-    context.addExecutionLog({
-      nodeId: node.id,
-      nodeType: node.type,
-      type: "warning",
-      message: "Loop \uB0B4\uBD80 \uC2DC\uC791 \uD578\uB4E4\uC5D0 \uC5F0\uACB0\uB41C \uB178\uB4DC\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4"
-    });
+    context.onNodeResult?.(
+      node.id,
+      node.type,
+      {
+        type: "error",
+        error: "Loop \uB0B4\uBD80 \uC2DC\uC791 \uD578\uB4E4\uC5D0 \uC5F0\uACB0\uB41C \uB178\uB4DC\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4"
+      },
+      "Loop \uB178\uB4DC \uC2E4\uD589 \uC2E4\uD328(Loop \uB0B4\uBD80 \uC2DC\uC791 \uD578\uB4E4\uC5D0 \uC5F0\uACB0\uB41C \uB178\uB4DC\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4)"
+    );
     return { selectedHandleId: `${node.id}-exit`, iterations: 0 };
   }
   const firstInternalNodeId = loopStartEdge.target;
   let iteration = 0;
   for (iteration = 1; iteration <= maxIterations; iteration++) {
-    context.addExecutionLog({
-      nodeId: node.id,
-      nodeType: node.type,
-      type: "info",
-      message: `Loop \uBC18\uBCF5 ${iteration}/${maxIterations} \uC2DC\uC791`
-    });
+    context.onNodeResult?.(
+      node.id,
+      node.type,
+      {
+        type: "iteration_start",
+        data: {
+          iteration,
+          maxIterations
+        }
+      },
+      `Loop \uB178\uB4DC \uBC18\uBCF5 \uC2DC\uC791 - ${iteration} / ${maxIterations}`
+    );
     try {
       await executeInternalLoopGraph(
         firstInternalNodeId,
@@ -1133,20 +1104,19 @@ async function executeLoopNode(node, context, allNodes, edges) {
         allNodes,
         edges
       );
-      context.addExecutionLog({
-        nodeId: node.id,
-        nodeType: node.type,
-        type: "info",
-        message: `Loop \uBC18\uBCF5 ${iteration}/${maxIterations} \uC644\uB8CC`
-      });
+      context.onNodeResult?.(
+        node.id,
+        node.type,
+        {
+          type: "iteration_done",
+          data: {
+            iteration,
+            maxIterations
+          }
+        },
+        "Loop \uB178\uB4DC \uBC18\uBCF5 \uC644\uB8CC"
+      );
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      context.addExecutionLog({
-        nodeId: node.id,
-        nodeType: node.type,
-        type: "error",
-        message: `Loop \uB0B4\uBD80 \uC2E4\uD589 \uC2E4\uD328 (${iteration}\uD68C\uCC28): ${errorMessage}`
-      });
       throw error;
     }
     if (exitCondition?.expression) {
@@ -1169,38 +1139,46 @@ async function executeLoopNode(node, context, allNodes, edges) {
           exitCondition.expression,
           evaluationContext
         );
-        context.addExecutionLog({
-          nodeId: node.id,
-          nodeType: node.type,
-          type: "info",
-          message: `Exit condition \uD3C9\uAC00: ${exitCondition.expression} => ${shouldExit}`
-        });
         if (shouldExit) {
-          context.addExecutionLog({
-            nodeId: node.id,
-            nodeType: node.type,
-            type: "complete",
-            message: `Loop \uC885\uB8CC - exit condition \uB9CC\uC871 (${iteration}\uD68C \uBC18\uBCF5)`
-          });
+          context.onNodeResult?.(
+            node.id,
+            node.type,
+            {
+              type: "done",
+              data: {
+                reason: "exit_condition",
+                iterations: iteration
+              }
+            },
+            "Loop \uB178\uB4DC \uBC18\uBCF5 \uC644\uB8CC"
+          );
           return { selectedHandleId: `${node.id}-exit`, iterations: iteration };
         }
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        context.addExecutionLog({
-          nodeId: node.id,
-          nodeType: node.type,
-          type: "error",
-          message: `Exit condition \uD3C9\uAC00 \uC2E4\uD328: ${errorMessage}`
-        });
+        context.onNodeResult?.(
+          node.id,
+          node.type,
+          {
+            type: "condition_evaluation_error",
+            error: error instanceof Error ? error.message : String(error)
+          },
+          "Loop \uB178\uB4DC \uBC18\uBCF5 Exit condition \uD3C9\uAC00 \uC2E4\uD328"
+        );
       }
     }
   }
-  context.addExecutionLog({
-    nodeId: node.id,
-    nodeType: node.type,
-    type: "complete",
-    message: `Loop \uC885\uB8CC - \uCD5C\uB300 \uBC18\uBCF5 \uD69F\uC218 \uB3C4\uB2EC (${maxIterations}\uD68C)`
-  });
+  context.onNodeResult?.(
+    node.id,
+    node.type,
+    {
+      type: "done",
+      data: {
+        reason: "max_iterations",
+        iterations: maxIterations
+      }
+    },
+    "Loop \uB178\uB4DC \uBC18\uBCF5 \uC644\uB8CC"
+  );
   return {
     selectedHandleId: `${node.id}-max-reached`,
     iterations: maxIterations
@@ -1224,61 +1202,51 @@ async function executeConditionNode(node, context, allNodes, edges) {
   evaluationContext["state"] = stateObject;
   for (let i = 0; i < conditions.length; i++) {
     const condition = conditions[i];
-    context.addExecutionLog({
-      nodeId: node.id,
-      nodeType: node.type,
-      type: "info",
-      message: `\uC870\uAC74 ${i + 1} \uD3C9\uAC00: ${condition.label || `\uC870\uAC74 ${i + 1}`}`
+    context.onNodeResult?.(node.id, node.type, {
+      type: "condition_evaluating",
+      conditionIndex: i,
+      conditionLabel: condition.label,
+      expression: condition.expression
     });
     try {
       if (!condition.expression || condition.expression.trim() === "") {
         console.warn(
           `[\uC870\uAC74 \uD3C9\uAC00] \uC870\uAC74 ${i + 1}\uC758 \uD45C\uD604\uC2DD\uC774 \uBE44\uC5B4\uC788\uC5B4 \uAC74\uB108\uB701\uB2C8\uB2E4`
         );
-        context.addExecutionLog({
-          nodeId: node.id,
-          nodeType: node.type,
-          type: "warning",
-          message: `\uC870\uAC74 ${i + 1}\uC758 \uD45C\uD604\uC2DD\uC774 \uBE44\uC5B4\uC788\uC2B5\uB2C8\uB2E4`
-        });
         continue;
       }
       const result = evaluateCondition(condition.expression, evaluationContext);
-      context.addExecutionLog({
-        nodeId: node.id,
-        nodeType: node.type,
-        type: "info",
-        message: `\uC870\uAC74 ${i + 1} \uD3C9\uAC00 \uACB0\uACFC: ${result}`,
-        data: { expression: condition.expression, result }
-      });
       if (result) {
-        context.addExecutionLog({
-          nodeId: node.id,
-          nodeType: node.type,
-          type: "complete",
-          message: `\uC870\uAC74 ${i + 1}\uC774 true - "${condition.label}" \uACBD\uB85C \uC120\uD0DD`
-        });
+        context.onNodeResult?.(
+          node.id,
+          node.type,
+          {
+            type: "condition_matched",
+            data: {
+              conditionIndex: i,
+              conditionLabel: condition.label,
+              selectedHandleId: condition.outputHandleId
+            }
+          },
+          "\uC870\uAC74 \uB178\uB4DC \uC870\uAC74 \uB9E4\uCE6D"
+        );
         return { selectedHandleId: condition.outputHandleId };
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error(`[\uC870\uAC74 \uD3C9\uAC00 \uC2E4\uD328] \uC870\uAC74 ${i + 1}:`, errorMessage);
-      context.addExecutionLog({
-        nodeId: node.id,
-        nodeType: node.type,
-        type: "error",
-        message: `\uC870\uAC74 ${i + 1} \uD3C9\uAC00 \uC2E4\uD328: ${errorMessage}`
-      });
+      console.error(`[\uC870\uAC74 \uD3C9\uAC00 \uC2E4\uD328] \uC870\uAC74 ${i + 1}:`, error);
+      context.onNodeResult?.(
+        node.id,
+        node.type,
+        {
+          type: "condition_evaluation_error",
+          error: error instanceof Error ? error.message : String(error)
+        },
+        "\uC870\uAC74 \uB178\uB4DC \uC870\uAC74 \uD3C9\uAC00 \uC2E4\uD328(Exit condition)"
+      );
       continue;
     }
   }
   const defaultHandleId = node.data.nodeData?.defaultOutputHandleId || `${node.id}-output-default`;
-  context.addExecutionLog({
-    nodeId: node.id,
-    nodeType: node.type,
-    type: "complete",
-    message: "\uBAA8\uB4E0 \uC870\uAC74\uC774 false - else(\uAE30\uBCF8) \uACBD\uB85C \uC120\uD0DD"
-  });
   return { selectedHandleId: defaultHandleId };
 }
 async function executeUploadNode(node, context, allNodes, edges) {
@@ -1286,35 +1254,31 @@ async function executeUploadNode(node, context, allNodes, edges) {
     throw new Error("Upload \uB178\uB4DC\uAC00 \uC544\uB2D9\uB2C8\uB2E4");
   }
   const nodeData = node.data;
-  context.addExecutionLog({
-    nodeId: node.id,
-    nodeType: node.type,
-    type: "info",
-    message: "\uD30C\uC77C \uC5C5\uB85C\uB4DC \uB178\uB4DC \uC2E4\uD589",
-    data: { config: nodeData.nodeData }
-  });
+  context.onNodeResult?.(
+    node.id,
+    node.type,
+    {
+      type: "start"
+    },
+    "Upload \uB178\uB4DC \uC2E4\uD589 \uC2DC\uC791"
+  );
   try {
     const uploadedFile = nodeData.nodeData?.uploadedFile;
     if (!uploadedFile) {
       throw new Error("\uC5C5\uB85C\uB4DC\uB41C \uD30C\uC77C\uC774 \uC5C6\uC2B5\uB2C8\uB2E4");
     }
     const result = uploadedFile;
-    context.addExecutionLog({
-      nodeId: node.id,
-      nodeType: node.type,
-      type: "complete",
-      message: "\uD30C\uC77C \uC5C5\uB85C\uB4DC \uC644\uB8CC",
-      data: result
-    });
+    context.onNodeResult?.(
+      node.id,
+      node.type,
+      {
+        type: "done",
+        output: result
+      },
+      "Upload \uB178\uB4DC \uC2E4\uD589 \uC644\uB8CC"
+    );
     return result;
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    context.addExecutionLog({
-      nodeId: node.id,
-      nodeType: node.type,
-      type: "error",
-      message: `\uD30C\uC77C \uC5C5\uB85C\uB4DC \uC2E4\uD328: ${errorMessage}`
-    });
     throw error;
   }
 }
@@ -1395,12 +1359,6 @@ async function executeWorkflow(nodes, edges, context, initialInputs) {
       console.error(`[\uC5D0\uB7EC] \uB178\uB4DC\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC74C: ${nodeId}`);
       return;
     }
-    context.addExecutionLog({
-      nodeId: node.id,
-      nodeType: node.type,
-      type: "start",
-      message: `${node.type} \uB178\uB4DC \uC2E4\uD589 \uC2DC\uC791: ${node.data.label || node.id}`
-    });
     try {
       const output = await executeNode(
         node,
@@ -1410,13 +1368,6 @@ async function executeWorkflow(nodes, edges, context, initialInputs) {
         node.type === "start" ? initialInputs : void 0
       );
       context.state.execution.nodeOutputs.set(nodeId, output);
-      context.addExecutionLog({
-        nodeId: node.id,
-        nodeType: node.type,
-        type: "complete",
-        message: `${node.type} \uB178\uB4DC \uC2E4\uD589 \uC644\uB8CC: ${node.data.label || node.id}`,
-        data: output
-      });
       if (node.type === "end") {
         finalResult = output;
         return;
@@ -1446,13 +1397,15 @@ async function executeWorkflow(nodes, edges, context, initialInputs) {
       );
     } catch (error) {
       console.error(`[\uC5D0\uB7EC] \uB178\uB4DC \uC2E4\uD589 \uC2E4\uD328: ${nodeId}`, error);
-      const errorMessage = `\uB178\uB4DC \uC2E4\uD589 \uC2E4\uD328 (${node.data.label || nodeId}): ${error instanceof Error ? error.message : String(error)}`;
-      context.addExecutionLog({
-        nodeId: node.id,
-        nodeType: node.type,
-        type: "error",
-        message: errorMessage
-      });
+      context.onNodeResult?.(
+        node.id,
+        node.type,
+        {
+          type: "error",
+          error: error instanceof Error ? error.message : String(error)
+        },
+        "\uB178\uB4DC \uC2E4\uD589 \uC2E4\uD328"
+      );
       throw error;
     }
   }
@@ -1474,13 +1427,24 @@ var WorkflowExecutionContext = class {
         logs: []
       }
     };
-    this.addExecutionLog = options?.addExecutionLog || ((logs) => {
-      console.log(`[${logs.nodeType}] ${logs.message}`);
-    });
-    this.onNodeResult = options?.onNodeResult;
+    this._onNodeResultCallback = options?.onNodeResult;
     this.executeCodeCallback = options?.executeCodeCallback;
     this.baseURL = options?.baseURL;
     this.getAccessToken = options?.getAccessToken;
+    this._addExecutionLog = options?.addExecutionLog;
+  }
+  // onNodeResult를 호출하면 자동으로 addExecutionLog도 호출
+  onNodeResult(nodeId, nodeType, data, message) {
+    this._onNodeResultCallback?.(nodeId, nodeType, data, message);
+    if (this._addExecutionLog) {
+      this._addExecutionLog({
+        nodeId,
+        nodeType,
+        type: data.type,
+        message: message || `${nodeType} - ${data.type}`,
+        data
+      });
+    }
   }
   // Read-only access to state
   get state() {

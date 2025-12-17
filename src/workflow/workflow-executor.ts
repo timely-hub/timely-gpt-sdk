@@ -166,15 +166,6 @@ async function executeToolNode(
 
     return result;
   } catch (error) {
-    context.onNodeResult?.(
-      node.id,
-      node.type,
-      {
-        type: "error",
-        error: error instanceof Error ? error.message : String(error),
-      },
-      "Tool 노드 실행 실패"
-    );
     throw error;
   }
 }
@@ -483,15 +474,6 @@ async function executeLlmNode(
 
     return result;
   } catch (error) {
-    context.onNodeResult?.(
-      node.id,
-      node.type,
-      {
-        type: "error",
-        error: error instanceof Error ? error.message : String(error),
-      },
-      "LLM 노드 실행 실패"
-    );
     throw error;
   }
 }
@@ -615,15 +597,6 @@ async function executeTransformerNode(
     );
     return result;
   } catch (error) {
-    context.onNodeResult?.(
-      node.id,
-      node.type,
-      {
-        type: "error",
-        error: error instanceof Error ? error.message : String(error),
-      },
-      "Transformer 노드 실행 실패"
-    );
     throw error;
   }
 }
@@ -935,15 +908,6 @@ async function executeStateNode(
       try {
         value = evaluateCEL(update.binding, celContext);
       } catch (error) {
-        context.onNodeResult?.(
-          node.id,
-          node.type,
-          {
-            type: "error",
-            error: error instanceof Error ? error.message : String(error),
-          },
-          "State 노드 바인딩 평가 실패"
-        );
         console.warn(`[State 노드] 바인딩 평가 실패: ${update.binding}`, error);
         continue;
       }
@@ -1109,7 +1073,7 @@ async function executeLoopNode(
         type: "error",
         error: "Loop 내부 시작 핸들에 연결된 노드가 없습니다",
       },
-      "Loop 노드 실행 실패"
+      "Loop 노드 실행 실패(Loop 내부 시작 핸들에 연결된 노드가 없습니다)"
     );
     return { selectedHandleId: `${node.id}-exit`, iterations: 0 };
   }
@@ -1157,15 +1121,6 @@ async function executeLoopNode(
         "Loop 노드 반복 완료"
       );
     } catch (error) {
-      context.onNodeResult?.(
-        node.id,
-        node.type,
-        {
-          type: "error",
-          error: error instanceof Error ? error.message : String(error),
-        },
-        "Loop 노드 반복 실패"
-      );
       throw error;
     }
 
@@ -1395,15 +1350,6 @@ async function executeUploadNode(
 
     return result;
   } catch (error) {
-    context.onNodeResult?.(
-      node.id,
-      node.type,
-      {
-        type: "error",
-        error: error instanceof Error ? error.message : String(error),
-      },
-      "Upload 노드 실행 실패"
-    );
     throw error;
   }
 }
@@ -1538,19 +1484,6 @@ export async function executeWorkflow<
       console.error(`[에러] 노드를 찾을 수 없음: ${nodeId}`);
       return;
     }
-    context.onNodeResult?.(
-      node.id,
-      node.type,
-      {
-        type: "node_start",
-        data: {
-          nodeId,
-          nodeType: node.type,
-          nodeLabel: node.data.label || node.id,
-        },
-      },
-      `${node.type} 노드 실행 시작: ${node.data.label || node.id}`
-    );
 
     try {
       // 노드 실행 (Start 노드인 경우에만 initialInputs 전달)
@@ -1564,21 +1497,6 @@ export async function executeWorkflow<
 
       // 출력 저장 - nodeOutputs Map에 직접 저장
       context.state.execution.nodeOutputs.set(nodeId, output);
-
-      context.onNodeResult?.(
-        node.id,
-        node.type,
-        {
-          type: "node_end",
-          output: output,
-          data: {
-            nodeId,
-            nodeType: node.type,
-            nodeLabel: node.data.label || node.id,
-          },
-        },
-        `${node.type} 노드 실행 완료: ${node.data.label || node.id}`
-      );
 
       // End 노드이면 최종 결과 저장
       if (node.type === "end") {

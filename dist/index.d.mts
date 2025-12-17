@@ -485,19 +485,20 @@ interface WorkflowExecutionState {
 type ExecuteCodeCallback = (toolName: string, args: Record<string, any>, functionCode: string) => Promise<any>;
 interface WorkflowContextOptions {
     addExecutionLog?: (logs: Omit<ExecutionLog, "timestamp">) => void;
-    onNodeResult?: (nodeId: string, nodeType: string, data: any) => void;
+    onNodeResult?: (nodeId: string, nodeType: string, data: any, message?: string) => void;
     executeCodeCallback?: ExecuteCodeCallback;
     baseURL?: string;
     getAccessToken?: () => Promise<string>;
 }
 declare class WorkflowExecutionContext {
     private _state;
-    addExecutionLog: (logs: Omit<ExecutionLog, "timestamp">) => void;
-    onNodeResult?: (nodeId: string, nodeType: string, data: any) => void;
+    private _onNodeResultCallback?;
     executeCodeCallback?: ExecuteCodeCallback;
     baseURL?: string;
     getAccessToken?: () => Promise<string>;
+    private _addExecutionLog?;
     constructor(options?: WorkflowContextOptions);
+    onNodeResult(nodeId: string, nodeType: string, data: any, message?: string): void;
     get state(): {
         execution: WorkflowExecutionState;
     };
