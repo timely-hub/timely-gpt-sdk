@@ -486,7 +486,7 @@ async function executeLlmNode(node, context, edges, allNodes) {
     const sessionId = `workflow-${node.id}-${Date.now()}`;
     const allMessages = [];
     let parsedOutput = null;
-    const processNonStream = async (requestBody, checkpointId = null, baseURL) => {
+    const processStream = async (requestBody, checkpointId = null, baseURL) => {
       const accessToken = context.getAccessToken ? await context.getAccessToken() : "master";
       const response = await fetch(`${baseURL}/llm-completion`, {
         method: "POST",
@@ -497,101 +497,167 @@ async function executeLlmNode(node, context, edges, allNodes) {
         body: JSON.stringify({
           ...requestBody,
           checkpoint_id: checkpointId,
-          stream: false
+          stream: true
         })
       });
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData.message || errorData.error || response.statusText;
-        throw new Error(`LLM \uC2E4\uD589 \uC2E4\uD328: ${errorMessage}`);
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-      const responseData = await response.json();
-      if (responseData.error) {
-        throw new Error(`LLM \uC2E4\uD589 \uC2E4\uD328: ${responseData.error}`);
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      if (!reader) {
+        throw new Error("No response body");
       }
-      if (responseData.type === "final_response") {
-        allMessages.push({
-          role: "assistant",
-          content: responseData.message
-        });
-        if (responseData.parsed) {
-          parsedOutput = responseData.parsed;
-        }
-      } else if (responseData.type === "tool_call_required") {
-        context.addExecutionLog({
-          nodeId: node.id,
-          nodeType: node.type,
-          type: "info",
-          message: `\uB3C4\uAD6C \uD638\uCD9C \uD544\uC694`,
-          data: responseData.tool_calls
-        });
-        const toolResults = await Promise.all(
-          responseData.tool_calls.map(async (toolCall) => {
-            let result2;
-            const tool = nodeData.tools?.find(
-              (t) => t.name === toolCall.name
-            );
-            if (!tool) {
-              result2 = JSON.stringify({ error: "\uB3C4\uAD6C\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4" });
-            } else if (tool.type === "custom") {
-              const execResult = await executeCode(
-                tool.functionCode || "",
-                toolCall.args
-              );
-              if (!execResult.success) {
-                result2 = JSON.stringify({
-                  error: execResult.error || "\uB3C4\uAD6C \uC2E4\uD589 \uC2E4\uD328"
+      let buffer = "";
+      let accumulatedMessage = "";
+      let accumulatedThinking = "";
+      let hasFinalResponse = false;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+        for (const line of lines) {
+          if (!line.trim() || !line.startsWith("data: ")) continue;
+          const data = line.slice(6);
+          try {
+            const event = JSON.parse(data);
+            switch (event.type) {
+              case "start":
+                context.addExecutionLog({
+                  nodeId: node.id,
+                  nodeType: node.type,
+                  type: "info",
+                  message: "LLM \uC751\uB2F5 \uC2DC\uC791"
                 });
-              } else {
-                result2 = JSON.stringify(execResult);
-              }
-            } else if (tool.type === "built-in") {
-              const accessToken2 = context.getAccessToken ? await context.getAccessToken() : "master";
-              const builtInResponse = await fetch(
-                `${context.baseURL}/built-in-tool-node/${tool.id}/invoke`,
-                {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${accessToken2}`
-                  },
-                  body: JSON.stringify({ args: toolCall.args })
+                break;
+              case "token":
+                accumulatedMessage += event.content;
+                break;
+              case "thinking":
+                accumulatedThinking += event.content;
+                break;
+              case "progress":
+                context.addExecutionLog({
+                  nodeId: node.id,
+                  nodeType: node.type,
+                  type: "info",
+                  message: event.content
+                });
+                break;
+              case "final_response":
+                hasFinalResponse = true;
+                allMessages.push({
+                  role: "assistant",
+                  content: event.message
+                });
+                if (event.parsed) {
+                  parsedOutput = event.parsed;
                 }
-              );
-              if (!builtInResponse.ok) {
-                result2 = JSON.stringify({ error: "Built-in tool \uC2E4\uD589 \uC2E4\uD328" });
-              } else {
-                const builtInData = await builtInResponse.json();
-                result2 = builtInData.data.output;
-              }
-            } else {
-              result2 = JSON.stringify({ error: "\uC9C0\uC6D0\uD558\uC9C0 \uC54A\uB294 \uB3C4\uAD6C \uD0C0\uC785" });
+                context.addExecutionLog({
+                  nodeId: node.id,
+                  nodeType: node.type,
+                  type: "info",
+                  message: "\uCD5C\uC885 \uC751\uB2F5 \uC218\uC2E0",
+                  data: {
+                    messageLength: event.message?.length || 0,
+                    thinking: accumulatedThinking ? `(${accumulatedThinking.length} chars)` : void 0
+                  }
+                });
+                break;
+              case "end":
+                if (!hasFinalResponse && accumulatedMessage) {
+                  allMessages.push({
+                    role: "assistant",
+                    content: accumulatedMessage
+                  });
+                }
+                break;
+              case "error":
+                throw new Error(event.message || event.error);
+              case "tool_call_required":
+                context.addExecutionLog({
+                  nodeId: node.id,
+                  nodeType: node.type,
+                  type: "info",
+                  message: `\uB3C4\uAD6C \uD638\uCD9C \uD544\uC694`,
+                  data: event.tool_calls
+                });
+                const toolResults = await Promise.all(
+                  event.tool_calls.map(async (toolCall) => {
+                    let result2;
+                    const tool = nodeData.tools?.find(
+                      (t) => t.name === toolCall.name
+                    );
+                    if (!tool) {
+                      result2 = JSON.stringify({ error: "\uB3C4\uAD6C\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4" });
+                    } else if (tool.type === "custom") {
+                      const execResult = await executeCode(
+                        tool.functionCode || "",
+                        toolCall.args
+                      );
+                      if (!execResult.success) {
+                        result2 = JSON.stringify({
+                          error: execResult.error || "\uB3C4\uAD6C \uC2E4\uD589 \uC2E4\uD328"
+                        });
+                      } else {
+                        result2 = JSON.stringify(execResult);
+                      }
+                    } else if (tool.type === "built-in") {
+                      const accessToken2 = context.getAccessToken ? await context.getAccessToken() : "master";
+                      const builtInResponse = await fetch(
+                        `${context.baseURL}/built-in-tool-node/${tool.id}/invoke`,
+                        {
+                          method: "POST",
+                          headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${accessToken2}`
+                          },
+                          body: JSON.stringify({ args: toolCall.args })
+                        }
+                      );
+                      if (!builtInResponse.ok) {
+                        result2 = JSON.stringify({ error: "Built-in tool \uC2E4\uD589 \uC2E4\uD328" });
+                      } else {
+                        const builtInData = await builtInResponse.json();
+                        result2 = builtInData.data.output;
+                      }
+                    } else {
+                      result2 = JSON.stringify({ error: "\uC9C0\uC6D0\uD558\uC9C0 \uC54A\uB294 \uB3C4\uAD6C \uD0C0\uC785" });
+                    }
+                    return {
+                      role: "tool",
+                      name: toolCall.name,
+                      tool_call_id: toolCall.tool_call_id,
+                      content: result2
+                    };
+                  })
+                );
+                context.addExecutionLog({
+                  nodeId: node.id,
+                  nodeType: node.type,
+                  type: "info",
+                  message: `\uB3C4\uAD6C \uC2E4\uD589 \uC644\uB8CC`,
+                  data: toolResults
+                });
+                await processStream(
+                  {
+                    ...requestBody,
+                    messages: toolResults
+                  },
+                  event.configurable.checkpoint_id,
+                  context.baseURL || ""
+                );
+                return;
+              // 재귀 호출 후 종료
+              default:
+                break;
             }
-            return {
-              role: "tool",
-              name: toolCall.name,
-              tool_call_id: toolCall.tool_call_id,
-              content: result2
-            };
-          })
-        );
-        context.addExecutionLog({
-          nodeId: node.id,
-          nodeType: node.type,
-          type: "info",
-          message: `\uB3C4\uAD6C \uC2E4\uD589 \uC644\uB8CC`,
-          data: toolResults
-        });
-        await processNonStream(
-          {
-            ...requestBody,
-            messages: toolResults
-          },
-          responseData.configurable.checkpoint_id,
-          context.baseURL || ""
-        );
-      } else if (responseData.type === "error") {
-        throw new Error(responseData.error);
+          } catch (parseError) {
+            console.error("[Stream Parse Error]", parseError);
+          }
+        }
       }
     };
     const initialRequest = {
@@ -605,7 +671,7 @@ async function executeLlmNode(node, context, edges, allNodes) {
       use_background_summarize: false,
       never_use_history: true,
       checkpoint_id: null,
-      stream: false,
+      stream: true,
       messages: [
         {
           role: "user",
@@ -613,7 +679,7 @@ async function executeLlmNode(node, context, edges, allNodes) {
         }
       ]
     };
-    await processNonStream(initialRequest, null, context.baseURL || "");
+    await processStream(initialRequest, null, context.baseURL || "");
     let result;
     if (nodeData.output_type === "JSON" && parsedOutput) {
       result = parsedOutput;

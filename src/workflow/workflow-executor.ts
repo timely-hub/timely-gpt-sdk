@@ -176,7 +176,7 @@ async function executeToolNode(
 }
 
 /**
- * LLM 노드 실행 (비스트리밍)
+ * LLM 노드 실행 (스트리밍)
  */
 async function executeLlmNode(
   node: AIWorkflowNodeType,
@@ -230,8 +230,8 @@ async function executeLlmNode(
     const allMessages: any[] = [];
     let parsedOutput: any = null; // JSON 모드일 때 parsed 결과 저장
 
-    // 재귀적으로 LLM 호출 (tool_call_required 처리)
-    const processNonStream = async (
+    // 재귀적으로 LLM 호출 (tool_call_required 처리) - 스트리밍
+    const processStream = async (
       requestBody: LLMCompletionRequest,
       checkpointId: string | null = null,
       baseURL: string
@@ -239,6 +239,7 @@ async function executeLlmNode(
       const accessToken = context.getAccessToken
         ? await context.getAccessToken()
         : "master";
+
       const response = await fetch(`${baseURL}/llm-completion`, {
         method: "POST",
         headers: {
@@ -248,125 +249,204 @@ async function executeLlmNode(
         body: JSON.stringify({
           ...requestBody,
           checkpoint_id: checkpointId,
-          stream: false,
+          stream: true,
         }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMessage =
-          errorData.message || errorData.error || response.statusText;
-        throw new Error(`LLM 실행 실패: ${errorMessage}`);
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const responseData = await response.json();
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
 
-      // API 응답에서 에러 체크
-      if (responseData.error) {
-        throw new Error(`LLM 실행 실패: ${responseData.error}`);
+      if (!reader) {
+        throw new Error("No response body");
       }
 
-      if (responseData.type === "final_response") {
-        // 최종 응답
-        allMessages.push({
-          role: "assistant",
-          content: responseData.message,
-        });
+      let buffer = "";
+      let accumulatedMessage = "";
+      let accumulatedThinking = "";
+      let hasFinalResponse = false;
 
-        // JSON 모드일 때 parsed 저장
-        if (responseData.parsed) {
-          parsedOutput = responseData.parsed;
-        }
-      } else if (responseData.type === "tool_call_required") {
-        // 도구 호출 필요
-        context.addExecutionLog({
-          nodeId: node.id,
-          nodeType: node.type,
-          type: "info",
-          message: `도구 호출 필요`,
-          data: responseData.tool_calls,
-        });
+      while (true) {
+        const { done, value } = await reader.read();
 
-        // 도구 실행
-        const toolResults = await Promise.all(
-          responseData.tool_calls.map(async (toolCall: any) => {
-            let result: string;
+        if (done) break;
 
-            // 도구 타입별 실행
-            const tool = nodeData.tools?.find(
-              (t: any) => t.name === toolCall.name
-            );
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
 
-            if (!tool) {
-              result = JSON.stringify({ error: "도구를 찾을 수 없습니다" });
-            } else if (tool.type === "custom") {
-              const execResult = await executeCode(
-                tool.functionCode || "",
-                toolCall.args
-              );
+        for (const line of lines) {
+          if (!line.trim() || !line.startsWith("data: ")) continue;
 
-              // Custom tool 실행 결과 검증
-              if (!execResult.success) {
-                result = JSON.stringify({
-                  error: execResult.error || "도구 실행 실패",
+          const data = line.slice(6);
+          try {
+            const event: any = JSON.parse(data);
+
+            switch (event.type) {
+              case "start":
+                context.addExecutionLog({
+                  nodeId: node.id,
+                  nodeType: node.type,
+                  type: "info",
+                  message: "LLM 응답 시작",
                 });
-              } else {
-                result = JSON.stringify(execResult);
-              }
-            } else if (tool.type === "built-in") {
-              const accessToken = context.getAccessToken
-                ? await context.getAccessToken()
-                : "master";
-              const builtInResponse = await fetch(
-                `${context.baseURL}/built-in-tool-node/${tool.id}/invoke`,
-                {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${accessToken}`,
-                  },
-                  body: JSON.stringify({ args: toolCall.args }),
+                break;
+
+              case "token":
+                accumulatedMessage += event.content;
+                break;
+
+              case "thinking":
+                accumulatedThinking += event.content;
+                break;
+
+              case "progress":
+                context.addExecutionLog({
+                  nodeId: node.id,
+                  nodeType: node.type,
+                  type: "info",
+                  message: event.content,
+                });
+                break;
+
+              case "final_response":
+                hasFinalResponse = true;
+                allMessages.push({
+                  role: "assistant",
+                  content: event.message,
+                });
+
+                // JSON 모드일 때 parsed 저장
+                if (event.parsed) {
+                  parsedOutput = event.parsed;
                 }
-              );
 
-              if (!builtInResponse.ok) {
-                result = JSON.stringify({ error: "Built-in tool 실행 실패" });
-              } else {
-                const builtInData = await builtInResponse.json();
-                result = builtInData.data.output;
-              }
-            } else {
-              result = JSON.stringify({ error: "지원하지 않는 도구 타입" });
+                context.addExecutionLog({
+                  nodeId: node.id,
+                  nodeType: node.type,
+                  type: "info",
+                  message: "최종 응답 수신",
+                  data: {
+                    messageLength: event.message?.length || 0,
+                    thinking: accumulatedThinking ? `(${accumulatedThinking.length} chars)` : undefined
+                  },
+                });
+                break;
+
+              case "end":
+                // final_response가 없었을 때만 메시지 추가
+                if (!hasFinalResponse && accumulatedMessage) {
+                  allMessages.push({
+                    role: "assistant",
+                    content: accumulatedMessage,
+                  });
+                }
+                break;
+
+              case "error":
+                throw new Error(event.message || event.error);
+
+              case "tool_call_required":
+                // 도구 호출 필요
+                context.addExecutionLog({
+                  nodeId: node.id,
+                  nodeType: node.type,
+                  type: "info",
+                  message: `도구 호출 필요`,
+                  data: event.tool_calls,
+                });
+
+                // 도구 실행
+                const toolResults = await Promise.all(
+                  event.tool_calls.map(async (toolCall: any) => {
+                    let result: string;
+
+                    // 도구 타입별 실행
+                    const tool = nodeData.tools?.find(
+                      (t: any) => t.name === toolCall.name
+                    );
+
+                    if (!tool) {
+                      result = JSON.stringify({ error: "도구를 찾을 수 없습니다" });
+                    } else if (tool.type === "custom") {
+                      const execResult = await executeCode(
+                        tool.functionCode || "",
+                        toolCall.args
+                      );
+
+                      // Custom tool 실행 결과 검증
+                      if (!execResult.success) {
+                        result = JSON.stringify({
+                          error: execResult.error || "도구 실행 실패",
+                        });
+                      } else {
+                        result = JSON.stringify(execResult);
+                      }
+                    } else if (tool.type === "built-in") {
+                      const accessToken = context.getAccessToken
+                        ? await context.getAccessToken()
+                        : "master";
+                      const builtInResponse = await fetch(
+                        `${context.baseURL}/built-in-tool-node/${tool.id}/invoke`,
+                        {
+                          method: "POST",
+                          headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${accessToken}`,
+                          },
+                          body: JSON.stringify({ args: toolCall.args }),
+                        }
+                      );
+
+                      if (!builtInResponse.ok) {
+                        result = JSON.stringify({ error: "Built-in tool 실행 실패" });
+                      } else {
+                        const builtInData = await builtInResponse.json();
+                        result = builtInData.data.output;
+                      }
+                    } else {
+                      result = JSON.stringify({ error: "지원하지 않는 도구 타입" });
+                    }
+
+                    return {
+                      role: "tool" as const,
+                      name: toolCall.name,
+                      tool_call_id: toolCall.tool_call_id,
+                      content: result,
+                    };
+                  })
+                );
+
+                context.addExecutionLog({
+                  nodeId: node.id,
+                  nodeType: node.type,
+                  type: "info",
+                  message: `도구 실행 완료`,
+                  data: toolResults,
+                });
+
+                // 재귀 호출
+                await processStream(
+                  {
+                    ...requestBody,
+                    messages: toolResults,
+                  },
+                  event.configurable.checkpoint_id,
+                  context.baseURL || ""
+                );
+                return; // 재귀 호출 후 종료
+
+              default:
+                // 알 수 없는 이벤트 타입은 무시
+                break;
             }
-
-            return {
-              role: "tool" as const,
-              name: toolCall.name,
-              tool_call_id: toolCall.tool_call_id,
-              content: result,
-            };
-          })
-        );
-
-        context.addExecutionLog({
-          nodeId: node.id,
-          nodeType: node.type,
-          type: "info",
-          message: `도구 실행 완료`,
-          data: toolResults,
-        });
-
-        // 재귀 호출
-        await processNonStream(
-          {
-            ...requestBody,
-            messages: toolResults,
-          },
-          responseData.configurable.checkpoint_id,
-          context.baseURL || ""
-        );
-      } else if (responseData.type === "error") {
-        throw new Error(responseData.error);
+          } catch (parseError) {
+            console.error("[Stream Parse Error]", parseError);
+          }
+        }
       }
     };
 
@@ -384,7 +464,7 @@ async function executeLlmNode(
       never_use_history: true,
       checkpoint_id: null,
 
-      stream: false,
+      stream: true,
       messages: [
         {
           role: "user",
@@ -393,7 +473,7 @@ async function executeLlmNode(
       ],
     };
 
-    await processNonStream(initialRequest, null, context.baseURL || "");
+    await processStream(initialRequest, null, context.baseURL || "");
 
     // JSON 모드일 때는 parsed 결과를, TEXT 모드일 때는 메시지 결과를 반환
     let result: any;
