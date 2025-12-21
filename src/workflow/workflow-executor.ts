@@ -221,8 +221,12 @@ async function executeLlmNode(
   try {
     const nodeData = (node as any).data.nodeData;
     const chatModelNodeId = nodeData.id;
+    const nodeLabel = node.data.label;
 
-    const sessionId = `workflow-${node.id}-${Date.now()}`;
+    // TODO: node.data아래에 채팅 기억 여부 boolean 값이 있으면 그 값으로
+    const rememberChat = nodeData.rememberChat ?? false;
+
+    const sessionId = `workflow-${node.id}${nodeLabel ? `-${nodeLabel.trim()}` : ""}`;
     const allMessages: any[] = [];
     let parsedOutput: any = null; // JSON 모드일 때 parsed 결과 저장
 
@@ -456,10 +460,10 @@ async function executeLlmNode(
       locale: "ko",
       user_location: null,
       use_all_built_in_tools: false,
-      use_background_summarize: false,
-      never_use_history: true,
+      use_background_summarize: rememberChat,
+      never_use_history: !rememberChat,
       checkpoint_id: null,
-
+      chat_type: "DYNAMIC_CHAT",
       stream: true,
       messages: [
         {
