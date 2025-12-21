@@ -489,6 +489,7 @@ interface WorkflowContextOptions {
     executeCodeCallback?: ExecuteCodeCallback;
     baseURL?: string;
     getAccessToken?: () => Promise<string>;
+    useStreamProxy?: boolean;
 }
 declare class WorkflowExecutionContext {
     private _state;
@@ -496,6 +497,7 @@ declare class WorkflowExecutionContext {
     executeCodeCallback?: ExecuteCodeCallback;
     baseURL?: string;
     getAccessToken?: () => Promise<string>;
+    useStreamProxy?: boolean;
     private _addExecutionLog?;
     constructor(options?: WorkflowContextOptions);
     onNodeResult(nodeId: string, nodeType: string, data: any, message?: string): void;

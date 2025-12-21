@@ -456,19 +456,37 @@ async function executeLlmNode(node, context, edges, allNodes) {
     const allMessages = [];
     let parsedOutput = null;
     const processStream = async (requestBody, checkpointId = null, baseURL) => {
-      const accessToken = context.getAccessToken ? await context.getAccessToken() : "master";
-      const response = await fetch(`${baseURL}/llm-completion`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`
-        },
-        body: JSON.stringify({
-          ...requestBody,
-          checkpoint_id: checkpointId,
-          stream: true
-        })
-      });
+      let response;
+      if (context.useStreamProxy) {
+        const formData = new FormData();
+        formData.append("url", "/api-ai/v2/llm-completion");
+        formData.append(
+          "body",
+          JSON.stringify({
+            ...requestBody,
+            checkpoint_id: checkpointId,
+            stream: true
+          })
+        );
+        response = await fetch("/api/stream", {
+          method: "POST",
+          body: formData
+        });
+      } else {
+        const accessToken = context.getAccessToken ? await context.getAccessToken() : "master";
+        response = await fetch(`${baseURL}/llm-completion`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`
+          },
+          body: JSON.stringify({
+            ...requestBody,
+            checkpoint_id: checkpointId,
+            stream: true
+          })
+        });
+      }
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -488,11 +506,12 @@ async function executeLlmNode(node, context, edges, allNodes) {
         const lines = buffer.split("\n");
         buffer = lines.pop() || "";
         for (const line of lines) {
-          if (!line.trim() || !line.startsWith("data: ")) continue;
+          if (!line.trim() || !line.startsWith("data: ")) {
+            continue;
+          }
           const data = line.slice(6);
           try {
             const event = JSON.parse(data);
-            console.log("event", event);
             context.onNodeResult?.(
               node.id,
               node.type,
@@ -557,14 +576,14 @@ async function executeLlmNode(node, context, edges, allNodes) {
                         result2 = JSON.stringify(execResult);
                       }
                     } else if (tool.type === "built-in") {
-                      const accessToken2 = context.getAccessToken ? await context.getAccessToken() : "master";
+                      const accessToken = context.getAccessToken ? await context.getAccessToken() : "master";
                       const builtInResponse = await fetch(
                         `${context.baseURL}/built-in-tool-node/${tool.id}/invoke`,
                         {
                           method: "POST",
                           headers: {
                             "Content-Type": "application/json",
-                            Authorization: `Bearer ${accessToken2}`
+                            Authorization: `Bearer ${accessToken}`
                           },
                           body: JSON.stringify({ args: toolCall.args })
                         }
@@ -1399,6 +1418,7 @@ var WorkflowExecutionContext = class {
     this.executeCodeCallback = options?.executeCodeCallback;
     this.baseURL = options?.baseURL;
     this.getAccessToken = options?.getAccessToken;
+    this.useStreamProxy = options?.useStreamProxy;
     this._addExecutionLog = options?.addExecutionLog;
   }
   // onNodeResult를 호출하면 자동으로 addExecutionLog도 호출
