@@ -297,6 +297,20 @@ function resolveInputBindings(inputBindings, nodeOutputs, allNodes, globalState)
 }
 
 // src/workflow/workflow-executor.ts
+function decodeJwtPayload(token) {
+  try {
+    const base64Url = token.split(".")[1];
+    if (!base64Url) return null;
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      atob(base64).split("").map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2)).join("")
+    );
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    console.warn("Failed to decode JWT payload:", e);
+    return null;
+  }
+}
 var { executeCode } = {
   executeCode: async (code, params) => {
     try {
@@ -453,8 +467,20 @@ async function executeLlmNode(node, context, edges, allNodes) {
     const nodeData = node.data.nodeData;
     const chatModelNodeId = nodeData.id;
     const nodeLabel = node.data.label;
-    const rememberChat = nodeData.rememberChat ?? false;
-    const sessionId = `workflow-${node.id}${nodeLabel ? `-${nodeLabel.trim()}` : ""}`;
+    const startNode = allNodes.find((n) => n.type === "start");
+    const isChatInputMode = startNode?.data.nodeData.type === "chat";
+    const rememberChat = isChatInputMode ? nodeData.use_background_summarize ?? false : false;
+    let spaceMemberId = "anonymous";
+    if (context.getAccessToken) {
+      try {
+        const token = await context.getAccessToken();
+        const payload = decodeJwtPayload(token);
+        spaceMemberId = payload?.spaceMemberId || payload?.sub || "anonymous";
+      } catch (e) {
+        console.warn("Failed to extract spaceMemberId from token:", e);
+      }
+    }
+    const sessionId = `workflow-${spaceMemberId}-${node.id}${nodeLabel ? `-${nodeLabel.trim()}` : ""}`;
     const allMessages = [];
     let parsedOutput = null;
     const processStream = async (requestBody, checkpointId = null, baseURL) => {
