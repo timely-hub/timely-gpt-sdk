@@ -484,9 +484,9 @@ async function executeLlmNode(node, context, edges, allNodes) {
   try {
     const nodeData = node.data.nodeData;
     const chatModelNodeId = nodeData.id;
-    console.log("nodeData", nodeData);
-    console.log("node", node);
-    const sessionId = `workflow-${node.id}${nodeData.label ? `-${nodeData.label.trim()}` : ""}`;
+    const nodeLabel = node.data.label;
+    const rememberChat = nodeData.rememberChat ?? false;
+    const sessionId = `workflow-${node.id}${nodeLabel ? `-${nodeLabel.trim()}` : ""}`;
     const allMessages = [];
     let parsedOutput = null;
     const processStream = async (requestBody, checkpointId = null, baseURL) => {
@@ -670,8 +670,8 @@ async function executeLlmNode(node, context, edges, allNodes) {
       locale: "ko",
       user_location: null,
       use_all_built_in_tools: false,
-      use_background_summarize: false,
-      never_use_history: true,
+      use_background_summarize: rememberChat,
+      never_use_history: !rememberChat,
       checkpoint_id: null,
       chat_type: "DYNAMIC_CHAT",
       stream: true,

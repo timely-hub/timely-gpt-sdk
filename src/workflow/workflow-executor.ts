@@ -8,6 +8,29 @@ import type {
 } from "./workflow-types";
 type LLMCompletionRequest = Record<string, any>;
 
+/**
+ * JWT Payload 디코딩 (서명 검증 없이 payload만 추출)
+ * @param token JWT 토큰 문자열
+ * @returns 디코딩된 payload 객체 또는 null
+ */
+function decodeJwtPayload(token: string): any {
+  try {
+    const base64Url = token.split(".")[1];
+    if (!base64Url) return null;
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join("")
+    );
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    console.warn("Failed to decode JWT payload:", e);
+    return null;
+  }
+}
+
 // Tool 노드 실행
 const { executeCode } = {
   executeCode: async (
@@ -223,10 +246,25 @@ async function executeLlmNode(
     const chatModelNodeId = nodeData.id;
     const nodeLabel = node.data.label;
 
-    // TODO: node.data아래에 채팅 기억 여부 boolean 값이 있으면 그 값으로
-    const rememberChat = nodeData.rememberChat ?? false;
+    const startNode = allNodes.find((n) => n.type === "start");
+    const isChatInputMode = startNode?.data.nodeData.type === "chat";
+    const rememberChat = isChatInputMode
+      ? (nodeData.use_background_summarize ?? false)
+      : false;
 
-    const sessionId = `workflow-${node.id}${nodeLabel ? `-${nodeLabel.trim()}` : ""}`;
+    // spaceMemberId를 토큰에서 추출하여 sessionId에 포함
+    let spaceMemberId = "anonymous";
+    if (context.getAccessToken) {
+      try {
+        const token = await context.getAccessToken();
+        const payload = decodeJwtPayload(token);
+        spaceMemberId = payload?.spaceMemberId || payload?.sub || "anonymous";
+      } catch (e) {
+        console.warn("Failed to extract spaceMemberId from token:", e);
+      }
+    }
+
+    const sessionId = `workflow-${spaceMemberId}-${node.id}${nodeLabel ? `-${nodeLabel.trim()}` : ""}`;
     const allMessages: any[] = [];
     let parsedOutput: any = null; // JSON 모드일 때 parsed 결과 저장
 
