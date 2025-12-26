@@ -1706,6 +1706,7 @@ var AVAILABLE_MODELS = [
   "gpt-5-codex",
   "codex-mini",
   "o3-deep-research",
+  "gemini-3-flash",
   "gemini-3-pro",
   "gemini-2.5-flash-lite",
   "gemini-2.5-flash",
