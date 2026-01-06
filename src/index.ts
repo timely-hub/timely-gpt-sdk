@@ -54,14 +54,14 @@ export type {
  * const response = await client.chat.completions.create({
  *   session_id: 'session_123',
  *   messages: [{ role: 'user', content: '안녕하세요' }],
- *   chat_model_node: { model: 'gpt-5.1' },
+ *   model: 'gpt-5.1',
  * });
  *
  * // 스트리밍 요청
  * const stream = await client.chat.completions.create({
  *   session_id: 'session_123',
  *   messages: [{ role: 'user', content: '안녕하세요' }],
- *   chat_model_node: { model: 'gpt-5.1' },
+ *   model: 'gpt-5.1',
  *   stream: true,
  * });
  *

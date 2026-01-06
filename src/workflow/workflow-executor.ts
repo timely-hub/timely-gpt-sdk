@@ -1,4 +1,5 @@
 // Note: dotenv/config removed for browser compatibility
+import { CompletionRequest } from "../types";
 import { evaluateCEL, evaluateCondition } from "./evaluate-cel";
 import { resolveInputBindings } from "./resolve-input-bindings";
 import type {
@@ -6,7 +7,6 @@ import type {
   AIWorkflowNodeType,
   WorkflowContextType,
 } from "./workflow-types";
-type LLMCompletionRequest = Record<string, any>;
 
 /**
  * JWT Payload 디코딩 (서명 검증 없이 payload만 추출)
@@ -270,7 +270,7 @@ async function executeLlmNode(
 
     // 재귀적으로 LLM 호출 (tool_call_required 처리) - 스트리밍
     const processStream = async (
-      requestBody: LLMCompletionRequest,
+      requestBody: CompletionRequest,
       checkpointId: string | null = null,
       baseURL: string
     ): Promise<void> => {
@@ -488,12 +488,53 @@ async function executeLlmNode(
       }
     };
 
+    // tools 배열 초기화 (하위 호환성)
+    let tools = nodeData.tools;
+
+    // tools가 없고 레거시 필드가 있으면 변환
+    if (
+      !tools &&
+      (nodeData.built_in_tools ||
+        nodeData.custom_tool_ids ||
+        nodeData.mcp_server_ids)
+    ) {
+      tools = [];
+      if (nodeData.built_in_tools && nodeData.built_in_tools.length > 0) {
+        tools.push(
+          ...nodeData.built_in_tools.map((id: string) => ({
+            type: "built_in" as const,
+            tool_id: id,
+          }))
+        );
+      }
+      if (nodeData.custom_tool_ids && nodeData.custom_tool_ids.length > 0) {
+        tools.push(
+          ...nodeData.custom_tool_ids.map((id: string) => ({
+            type: "custom_tool_reference" as const,
+            custom_tool_id: id,
+          }))
+        );
+      }
+      if (nodeData.mcp_server_ids && nodeData.mcp_server_ids.length > 0) {
+        tools.push(
+          ...nodeData.custom_tool_ids.map((id: string) => ({
+            type: 'mcp_server_reference',
+            mcp_server_id: id,
+          }))
+        );
+      }
+    }
+
     // 초기 요청
-    const initialRequest: LLMCompletionRequest = {
+    const initialRequest: CompletionRequest = {
       session_id: sessionId,
-      chat_model_node_id:
-        chatModelNodeId && !nodeData ? chatModelNodeId : undefined,
-      chat_model_node: nodeData,
+      model: nodeData.model,
+      instructions: nodeData.instructions,
+      output_type: nodeData.output_type,
+      output_schema: nodeData.output_schema,
+      properties: nodeData.properties,
+      tools: tools,
+      rag_storage_ids: nodeData.rag_storage_ids,
       files: [],
       locale: "ko",
       user_location: null,

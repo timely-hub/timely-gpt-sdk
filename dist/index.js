@@ -205,9 +205,9 @@ var Completions = class {
     this.authManager = authManager;
   }
   async create(params) {
-    if (!params.chat_model_node_id && !params.chat_model_node) {
+    if (!params.model) {
       throw new Error(
-        "Either chat_model_node_id or chat_model_node must be provided"
+        "Either model must be provided"
       );
     }
     const chatType = params.chat_type || "DYNAMIC_CHAT";
@@ -690,8 +690,15 @@ async function executeLlmNode(node, context, edges, allNodes) {
     };
     const initialRequest = {
       session_id: sessionId,
-      chat_model_node_id: chatModelNodeId && !nodeData ? chatModelNodeId : void 0,
-      chat_model_node: nodeData,
+      model: nodeData.model,
+      instructions: nodeData.instructions,
+      output_type: nodeData.output_type,
+      output_schema: nodeData.output_schema,
+      properties: nodeData.properties,
+      built_in_tools: nodeData.built_in_tools,
+      custom_tool_ids: nodeData.custom_tool_ids,
+      mcp_server_ids: nodeData.mcp_server_ids,
+      rag_storage_ids: nodeData.rag_storage_ids,
       files: [],
       locale: "ko",
       user_location: null,

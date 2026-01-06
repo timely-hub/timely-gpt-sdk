@@ -143,10 +143,24 @@ interface CompletionRequest {
     session_id: string;
     /** 대화 메시지 배열 (필수) */
     messages: Message[];
-    /** 사전 구성된 모델 노드 ID (chat_model_node와 둘 중 하나 필수) */
-    chat_model_node_id?: string;
-    /** 인라인 모델 설정 (chat_model_node_id와 둘 중 하나 필수) */
-    chat_model_node?: ChatModelNode;
+    /** 모델 설정 */
+    model: string;
+    /** 시스템 지시사항 */
+    instructions?: string;
+    /** 출력 형식 (TEXT 또는 JSON) */
+    output_type?: "TEXT" | "JSON";
+    /** JSON 출력 스키마 (output_type이 'JSON'일 때 사용) */
+    output_schema?: Record<string, any> | null;
+    /** 모델별 추가 속성 (temperature, max_tokens 등) */
+    properties?: Record<string, any> | null;
+    /** 사용할 내장 도구 ID 목록 */
+    built_in_tools?: string[];
+    /** 사용할 커스텀 도구 ID 목록 */
+    custom_tool_ids?: string[];
+    /** 사용할 MCP 서버 ID 목록 */
+    mcp_server_ids?: string[];
+    /** 사용할 RAG 스토리지 ID 목록 */
+    rag_storage_ids?: string[];
     /** 채팅 타입 */
     chat_type?: ChatType;
     /** 사용자 메시지 ID */
@@ -202,7 +216,7 @@ interface Configurable {
  * const response = await client.chat.completions.create({
  *   session_id: 'session_123',
  *   messages: [{ role: 'user', content: '안녕하세요' }],
- *   chat_model_node: { model: 'gpt-5.1' },
+ *   model: 'gpt-5.1',
  * });
  *
  * if (response.type === 'final_response') {
@@ -376,7 +390,7 @@ interface ErrorResponse {
  * const stream = await client.chat.completions.create({
  *   session_id: 'session_123',
  *   messages: [{ role: 'user', content: '안녕하세요' }],
- *   chat_model_node: { model: 'gpt-5.1' },
+ *   model: 'gpt-5.1',
  *   stream: true,
  * });
  *
@@ -409,8 +423,15 @@ declare class Completions {
      * @param params - 요청 파라미터
      * @param params.session_id - 세션 ID (필수)
      * @param params.messages - 대화 메시지 배열 (필수)
-     * @param params.chat_model_node - 모델 설정 (chat_model_node_id와 둘 중 하나 필수)
-     * @param params.chat_model_node_id - 사전 구성된 모델 노드 ID (chat_model_node와 둘 중 하나 필수)
+     * @param params.model - 모델 설정
+     * @param params.instructions - 시스템 지시사항
+     * @param params.output_type - 출력 형식 (TEXT 또는 JSON)
+     * @param params.output_schema - JSON 출력 스키마 (output_type이 'JSON'일 때 사용)
+     * @param params.properties - 모델별 추가 속성 (temperature, max_tokens 등)
+     * @param params.built_in_tools - 사용할 내장 도구 ID 목록
+     * @param params.custom_tool_ids - 사용할 커스텀 도구 ID 목록
+     * @param params.mcp_server_ids - 사용할 MCP 서버 ID 목록
+     * @param params.rag_storage_ids - 사용할 RAG 스토리지 ID 목록
      * @param params.stream - 스트리밍 활성화 여부 (기본값: false)
      * @param params.locale - 언어 설정 (예: 'ko', 'en')
      * @param params.timezone - 타임존 (예: 'Asia/Seoul')
@@ -423,7 +444,7 @@ declare class Completions {
      * const response = await client.chat.completions.create({
      *   session_id: 'session_123',
      *   messages: [{ role: 'user', content: '안녕하세요' }],
-     *   chat_model_node: { model: 'gpt-5.1' },
+     *   model: 'gpt-5.1',
      *   stream: false
      * });
      *
@@ -432,7 +453,7 @@ declare class Completions {
      * const stream = await client.chat.completions.create({
      *   session_id: 'session_123',
      *   messages: [{ role: 'user', content: '안녕하세요' }],
-     *   chat_model_node: { model: 'gpt-5.1' },
+     *   model: 'gpt-5.1',
      *   stream: true
      * });
      *
@@ -448,10 +469,10 @@ declare class Completions {
      *   session_id: 'session_123',
      *   messages: toolResults,
      *   checkpoint_id: response.configurable.checkpoint_id,
-     *   chat_model_node: { model: 'gpt-5.1' } // 이전과 동일한 설정 사용
+     *   model: 'gpt-5.1' // 이전과 동일한 설정 사용
      * });
      *
-     * @throws {Error} chat_model_node_id와 chat_model_node가 모두 제공되지 않은 경우
+     * @throws {Error} model가 모두 제공되지 않은 경우
      */
     create(params: CompletionRequest & {
         stream: true;
@@ -705,14 +726,14 @@ declare function executeWorkflow<TNodeType extends AIWorkflowNodeType = AIWorkfl
  * const response = await client.chat.completions.create({
  *   session_id: 'session_123',
  *   messages: [{ role: 'user', content: '안녕하세요' }],
- *   chat_model_node: { model: 'gpt-5.1' },
+ *   model: 'gpt-5.1',
  * });
  *
  * // 스트리밍 요청
  * const stream = await client.chat.completions.create({
  *   session_id: 'session_123',
  *   messages: [{ role: 'user', content: '안녕하세요' }],
- *   chat_model_node: { model: 'gpt-5.1' },
+ *   model: 'gpt-5.1',
  *   stream: true,
  * });
  *

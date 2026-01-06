@@ -106,10 +106,8 @@ const response = await client.chat.completions.create({
   messages: [
     { role: 'user', content: '안녕하세요!' }
   ],
-  chat_model_node: {
-    model: 'gpt-5.1',
-    instructions: '당신은 친절한 AI 어시스턴트입니다.',
-  },
+  model: 'gpt-5.1',
+  instructions: '당신은 친절한 AI 어시스턴트입니다.',
   locale: 'ko',
 });
 
@@ -133,10 +131,8 @@ const stream = await client.chat.completions.create({
   messages: [
     { role: 'user', content: '프로그래밍에 대해 설명해주세요' }
   ],
-  chat_model_node: {
-    model: 'gpt-5.1',
-    instructions: '당신은 친절한 AI 어시스턴트입니다.',
-  },
+  model: 'gpt-5.1',
+  instructions: '당신은 친절한 AI 어시스턴트입니다.',
   stream: true,
   locale: 'ko',
 });
@@ -195,8 +191,16 @@ const client = new TimelyGPTClient(); // 모든 값이 환경변수에서 로드
 interface CompletionRequest {
   session_id: string;                    // 필수: 세션 ID
   messages: Message[];                   // 필수: 대화 메시지
-  chat_model_node_id?: string;           // 선택: 사전 구성된 모델 노드 ID
-  chat_model_node?: ChatModelNode;       // 선택: 인라인 모델 설정
+  model: string;                         // 필수: 모델 설정
+  instructions: string;                  // 선택: 사용자 지침
+  output_type: 'TEXT' | 'JSON'; 
+  output_schema: Record<string, any>
+  properties: Record<string, any>
+  tool_configs: Record<string, any>
+  built_in_tools: string[]
+  custom_tool_ids: string[]
+  mcp_server_ids: string[]
+  rag_storage_ids: string[]
   stream?: boolean;                      // 선택: 스트리밍 활성화 (기본값: false)
   locale?: string;                       // 선택: 언어 (기본값: 'ko')
   timezone?: string;                     // 선택: 타임존 (예: 'Asia/Seoul')
@@ -386,17 +390,15 @@ AI가 사용자가 등록한 도구 사용이 필요하다고 판단하면 `tool
 
 **중요**: 도구 결과와 함께 재요청할 때는:
 - 이전 응답의 `checkpoint_id`를 포함해야 합니다
-- 이전 요청과 **동일한** `chat_model_node` 또는 `chat_model_node_id`를 사용해야 합니다
+- 이전 요청과 **동일한** `request`를 사용해야 합니다
 
 ```typescript
 // 1. 초기 요청
 const response = await client.chat.completions.create({
   session_id: 'session_123',
   messages: [{ role: 'user', content: '오늘 날씨 알려줘' }],
-  chat_model_node: {
-    model: 'gpt-5.1',
-    use_all_built_in_tools: true,
-  },
+  model: 'gpt-5.1',
+  use_all_built_in_tools: true,
   stream: false,
 });
 
@@ -415,15 +417,12 @@ if (response.type === 'tool_call_required') {
   );
 
   // 3. 도구 결과와 함께 대화 이어가기
-  // ⚠️ 중요: checkpoint_id와 동일한 chat_model_node를 함께 전달
   const finalResponse = await client.chat.completions.create({
     session_id: 'session_123',
     messages: toolResults,
     checkpoint_id: response.configurable.checkpoint_id,
-    chat_model_node: {
-      model: 'gpt-5.1',  // 이전과 동일한 모델 설정
-      use_all_built_in_tools: true,
-    },
+    model: 'gpt-5.1',  // 이전과 동일한 모델 설정
+    use_all_built_in_tools: true,
   });
 }
 ```
@@ -447,7 +446,7 @@ if (response.type === 'tool_call_required') {
 const response = await client.chat.completions.create({
   session_id: sessionId,
   messages: [{ role: 'user', content: '지난번 논의한 프로젝트 진행 상황은?' }],
-  chat_model_node: { model: 'gpt-5.1' },
+  model: 'gpt-5.1',
   use_background_summarize: true,  // 롱텀 컨텍스트 유지
 });
 ```
@@ -471,7 +470,7 @@ const response = await client.chat.completions.create({
 const response = await client.chat.completions.create({
   session_id: sessionId,
   messages: [{ role: 'user', content: '오늘 날씨는?' }],
-  chat_model_node: { model: 'gpt-5.1' },
+  model: 'gpt-5.1'},
   use_background_summarize: false,  // 숏텀, 빠른 응답
 });
 ```
@@ -484,18 +483,16 @@ const response = await client.chat.completions.create({
   messages: [
     { role: 'user', content: '사용자 정보를 JSON으로 추출해줘: John Doe, 30세, 서울' }
   ],
-  chat_model_node: {
-    model: 'gpt-5.1',
-    output_type: 'JSON',
-    output_schema: {
-      type: 'object',
-      properties: {
-        name: { type: 'string' },
-        age: { type: 'number' },
-        city: { type: 'string' },
-      },
-      required: ['name', 'age', 'city'],
+  model: 'gpt-5.1',
+  output_type: 'JSON',
+  output_schema: {
+    type: 'object',
+    properties: {
+      name: { type: 'string' },
+      age: { type: 'number' },
+      city: { type: 'string' },
     },
+    required: ['name', 'age', 'city'],
   },
 });
 
@@ -509,13 +506,11 @@ if (response.type === 'final_response') {
 
 ```typescript
 const response = await client.chat.completions.create({
-  chat_model_node: {
-    model: 'gpt-5.1',
-    properties: {
-      // 모델별 추가 속성 (temperature, max_tokens 등)
-      temperature: 0.7,
-      maxTokens: 1000,
-    },
+  model: 'gpt-5.1',
+  properties: {
+    // 모델별 추가 속성 (temperature, max_tokens 등)
+    temperature: 0.7,
+    maxTokens: 1000,
   },
   // ...
 });

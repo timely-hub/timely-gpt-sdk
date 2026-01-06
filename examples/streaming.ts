@@ -11,10 +11,8 @@ async function main() {
       messages: [
         { role: "user", content: "프로그래밍에 대해 간단히 설명해주세요" },
       ],
-      chat_model_node: {
-        model: "gpt-5.1",
-        instructions: "당신은 친절한 AI 어시스턴트입니다.",
-      },
+      model: "gpt-5.1",
+      instructions: "당신은 친절한 AI 어시스턴트입니다.",
       stream: true,
       locale: "ko",
     });

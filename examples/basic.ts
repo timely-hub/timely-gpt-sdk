@@ -11,10 +11,8 @@ async function main() {
       messages: [
         { role: "user", content: "안녕하세요! 간단하게 인사해주세요." },
       ],
-      chat_model_node: {
-        model: "gpt-5.1",
-        instructions: "당신은 친절한 AI 어시스턴트입니다.",
-      },
+      model: "gpt-5.1",
+      instructions: "당신은 친절한 AI 어시스턴트입니다.",
       locale: "ko",
       stream: false,
     });
