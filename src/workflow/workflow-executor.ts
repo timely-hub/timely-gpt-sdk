@@ -173,8 +173,41 @@ async function executeToolNode(
       const output = data.output;
       result = output;
     } else if (nodeData.type === "mcp") {
-      // TODO: MCP 도구 실행
-      throw new Error("MCP 도구 실행은 아직 지원되지 않습니다");
+      const transport = nodeData.tool.transport;
+      const serverUrl = nodeData.tool.url;
+      const canInvokeOnServer = transport === "sse" && serverUrl;
+      if (canInvokeOnServer && nodeData.allowedTools && nodeData.allowedTools.length > 0) {
+        const allowedTool = nodeData.allowedTools[0];
+        const accessToken = context.getAccessToken
+          ? await context.getAccessToken()
+          : "master";
+
+        const mcpInResponse = await fetch(
+          `${context.baseURL}/ai-workflow/mcp-server-node/invoke-tool`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify({
+              server_url: serverUrl,
+              tool_input: inputs,
+              tool_name: allowedTool,
+              headers: nodeData.headers,
+            }),
+          }
+        );
+
+        if (!mcpInResponse.ok) {
+          result = JSON.stringify({
+            error: "Built-in tool 실행 실패",
+          });
+        } else {
+          const mcpInData = await mcpInResponse.json();
+          result = mcpInData.data.output;
+        }
+      }
     }
 
     context.onNodeResult?.(
@@ -488,43 +521,6 @@ async function executeLlmNode(
       }
     };
 
-    // tools 배열 초기화 (하위 호환성)
-    let tools = nodeData.tools;
-
-    // tools가 없고 레거시 필드가 있으면 변환
-    if (
-      !tools &&
-      (nodeData.built_in_tools ||
-        nodeData.custom_tool_ids ||
-        nodeData.mcp_server_ids)
-    ) {
-      tools = [];
-      if (nodeData.built_in_tools && nodeData.built_in_tools.length > 0) {
-        tools.push(
-          ...nodeData.built_in_tools.map((id: string) => ({
-            type: "built_in" as const,
-            tool_id: id,
-          }))
-        );
-      }
-      if (nodeData.custom_tool_ids && nodeData.custom_tool_ids.length > 0) {
-        tools.push(
-          ...nodeData.custom_tool_ids.map((id: string) => ({
-            type: "custom_tool_reference" as const,
-            custom_tool_id: id,
-          }))
-        );
-      }
-      if (nodeData.mcp_server_ids && nodeData.mcp_server_ids.length > 0) {
-        tools.push(
-          ...nodeData.custom_tool_ids.map((id: string) => ({
-            type: 'mcp_server_reference',
-            mcp_server_id: id,
-          }))
-        );
-      }
-    }
-
     // 초기 요청
     const initialRequest: CompletionRequest = {
       session_id: sessionId,
@@ -533,12 +529,11 @@ async function executeLlmNode(
       output_type: nodeData.output_type,
       output_schema: nodeData.output_schema,
       properties: nodeData.properties,
-      tools: tools,
+      tools: nodeData.tools,
       rag_storage_ids: nodeData.rag_storage_ids,
       files: [],
       locale: "ko",
       user_location: null,
-      use_all_built_in_tools: false,
       use_background_summarize: rememberChat,
       never_use_history: !rememberChat,
       checkpoint_id: null,
@@ -775,7 +770,7 @@ async function executeEndNode(
               typeof sourceOutput === "string"
                 ? sourceOutput
                 : sourceOutput.lastMessage?.content ||
-                  JSON.stringify(sourceOutput),
+                JSON.stringify(sourceOutput),
           };
         } else {
           // JSON 모드
@@ -866,11 +861,11 @@ async function executeRAGNode(
           typeof sourceOutput === "string"
             ? { query: sourceOutput }
             : {
-                query:
-                  sourceOutput.response ||
-                  sourceOutput.userMessage ||
-                  JSON.stringify(sourceOutput),
-              };
+              query:
+                sourceOutput.response ||
+                sourceOutput.userMessage ||
+                JSON.stringify(sourceOutput),
+            };
       }
     }
   }
@@ -1492,8 +1487,7 @@ async function executeNode(
       return executeUploadNode(node, context, allNodes, edges);
     default:
       throw new Error(
-        `지원하지 않는 노드 타입: ${
-          (node as { type?: string })?.type ?? "unknown"
+        `지원하지 않는 노드 타입: ${(node as { type?: string })?.type ?? "unknown"
         }`
       );
   }

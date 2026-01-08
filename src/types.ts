@@ -39,71 +39,60 @@ export interface UserLocation {
   displayName?: string;
 }
 
-/**
- * Remote MCP 도구
- */
-export interface RemoteMcpTool {
+
+interface RemoteMcpToolDto {
   /** 도구 타입 */
-  type: "mcp";
-  /** MCP 서버 라벨 */
-  server_label: string;
+  type: 'mcp';
+  /** 원본 McpServerNode ID (있으면 참조 추적용) */
+  id?: string;
+  /** MCP 서버 이름 */
+  name: string;
   /** MCP 서버 설명 */
-  server_description?: string;
-  /** MCP 서버 URL */
-  server_url: string;
-  /** 승인 요구 수준 */
-  require_approval?: "always" | "never" | "auto";
-  /** 허용된 도구 목록 */
+  description?: string;
+  /** MCP 서버 URL (SSE 엔드포인트) */
+  url: string;
+  /** 전송 방식 (stdio, sse 등) */
+  transport?: string;
+  /** 도구 실행 승인 요구 여부 (기본값: 'never') */
+  require_approval?: 'always' | 'never' | 'auto';
+  /** 허용할 도구 이름 목록 (미지정 시 전체 허용) */
   allowed_tools?: string[];
-  /** HTTP 헤더 */
+  /** 요청 헤더 (인증 토큰 등) */
   headers?: Record<string, string>;
 }
-
 /**
- * 커스텀 도구 참조
+ * Function 도구 (OpenAI 호환, 클라이언트에서 실행)
  */
-export interface CustomToolReference {
+interface FunctionToolDto {
   /** 도구 타입 */
-  type: "custom_tool_reference";
-  /** 커스텀 도구 ID */
-  custom_tool_id: string;
-}
-
-export interface McpServerReference {
-  /** 도구 타입 */
-  type: "mcp_server_reference";
-  /** MCP 서버 ID */
-  mcp_server_id: string;
-}
-
-/**
- * Function 도구
- */
-export interface FunctionTool {
-  /** 도구 타입 */
-  type: "function";
+  type: 'function';
+  /** 원본 CustomToolNode ID (있으면 참조 추적용) */
+  id?: string;
   /** 함수 이름 */
-  name: string;
+  name?: string;
   /** 함수 설명 */
   description?: string;
-  /** 함수 파라미터 스키마 */
-  parameters: Record<string, any>;
+  /** JSONSchema 입력 스키마 */
+  schema?: Record<string, any> | null;
+  /** 함수 본문 (동적 실행용) */
+  function_body?: string;
+  /** 응답 스키마 */
+  response_schema?: Record<string, any>;
 }
-
 /**
- * 내장 도구
+ * Built-in 도구 참조
  */
-export interface BuiltInTool {
+interface BuiltInToolDto {
   /** 도구 타입 */
-  type: "built_in";
-  /** 내장 도구 ID */
-  tool_id: string;
+  type: 'built_in';
+  /** Built-in 도구 ID (예: web_search, code_interpreter, all_tools) */
+  id: string;
 }
 
 /**
  * 도구 타입 (통합)
  */
-export type Tool = RemoteMcpTool | CustomToolReference | FunctionTool | BuiltInTool | McpServerReference;
+export type Tool = RemoteMcpToolDto | FunctionToolDto | BuiltInToolDto;
 
 /**
  * 채팅 모델 노드 설정
@@ -115,7 +104,12 @@ export type Tool = RemoteMcpTool | CustomToolReference | FunctionTool | BuiltInT
  * const modelNode: ChatModelNode = {
  *   model: 'gpt-5.1',
  *   instructions: '당신은 친절한 AI 어시스턴트입니다.',
- *   use_all_built_in_tools: true,
+ *   tools: [
+ *     {
+ *       type: 'built_in',
+ *       id: 'all_tools'
+ *     }
+ *   ],
  *   output_type: 'TEXT',
  * };
  * ```
@@ -125,20 +119,14 @@ export interface ChatModelNode {
   model: ModelType;
   /** 시스템 지시사항 */
   instructions?: string;
-  /** 모든 내장 도구 사용 여부 */
-  use_all_built_in_tools?: boolean;
+  /** 사용할 도구 목록 */
+  tools?: (RemoteMcpToolDto | FunctionToolDto | BuiltInToolDto)[];
   /** 출력 형식 (TEXT 또는 JSON) */
   output_type?: "TEXT" | "JSON";
   /** JSON 출력 스키마 (output_type이 'JSON'일 때 사용) */
   output_schema?: Record<string, any> | null;
   /** 모델별 추가 속성 (temperature, max_tokens 등) */
   properties?: Record<string, any> | null;
-  /** 사용할 내장 도구 ID 목록 */
-  built_in_tools?: string[];
-  /** 사용할 커스텀 도구 ID 목록 */
-  custom_tool_ids?: string[];
-  /** 사용할 MCP 서버 ID 목록 */
-  mcp_server_ids?: string[];
   /** 사용할 RAG 스토리지 ID 목록 */
   rag_storage_ids?: string[];
 }
@@ -191,24 +179,8 @@ export interface CompletionRequest {
   /** 모델별 추가 속성 (temperature, max_tokens 등) */
   properties?: Record<string, any> | null;
 
-  /** 도구 목록 (Built-in, Remote MCP, Custom Tool 참조, Function) */
+  /** 사용할 도구 목록 */
   tools?: Tool[];
-
-  /**
-   * @deprecated tools 배열을 사용하세요
-   * 사용할 내장 도구 ID 목록
-   */
-  built_in_tools?: string[];
-  /**
-   * @deprecated tools 배열을 사용하세요
-   * 사용할 커스텀 도구 ID 목록
-   */
-  custom_tool_ids?: string[];
-  /**
-   * @deprecated tools 배열을 사용하세요
-   * 사용할 MCP 서버 ID 목록
-   */
-  mcp_server_ids?: string[];
 
   /** 사용할 RAG 스토리지 ID 목록 */
   rag_storage_ids?: string[];
@@ -228,8 +200,6 @@ export interface CompletionRequest {
   user_location?: UserLocation | null;
   /** 스트리밍 활성화 여부 */
   stream?: boolean;
-  /** 모든 내장 도구 사용 여부 */
-  use_all_built_in_tools?: boolean;
   /** 백그라운드 요약 사용 여부 */
   use_background_summarize?: boolean;
   /** 사고 과정 표시 여부 */
@@ -285,31 +255,31 @@ export interface Configurable {
  */
 export type CompletionResponse =
   | {
-      /** 최종 응답 타입 */
-      type: "final_response";
-      /** 세션 ID */
-      session_id: string;
-      /** AI의 응답 메시지 */
-      message: string;
-      /** AI의 사고 과정 */
-      thinking: string;
-      /** 도구 실행 결과 목록 */
-      tool_results: Array<Record<string, unknown>>;
-      /** 구조화된 출력 (output_type이 'JSON'일 때) */
-      parsed: any;
-    }
+    /** 최종 응답 타입 */
+    type: "final_response";
+    /** 세션 ID */
+    session_id: string;
+    /** AI의 응답 메시지 */
+    message: string;
+    /** AI의 사고 과정 */
+    thinking: string;
+    /** 도구 실행 결과 목록 */
+    tool_results: Array<Record<string, unknown>>;
+    /** 구조화된 출력 (output_type이 'JSON'일 때) */
+    parsed: any;
+  }
   | {
-      /** 도구 호출 요청 타입 */
-      type: "tool_call_required";
-      /** 세션 ID */
-      session_id: string;
-      /** 실행해야 할 도구 목록 */
-      tool_calls: ToolCall[];
-      /** 체크포인트 설정 정보 */
-      configurable: Configurable;
-      /** 사용자 메시지 ID */
-      user_message_id: string;
-    };
+    /** 도구 호출 요청 타입 */
+    type: "tool_call_required";
+    /** 세션 ID */
+    session_id: string;
+    /** 실행해야 할 도구 목록 */
+    tool_calls: ToolCall[];
+    /** 체크포인트 설정 정보 */
+    configurable: Configurable;
+    /** 사용자 메시지 ID */
+    user_message_id: string;
+  };
 
 /** 스트림 이벤트 타입 */
 export type StreamEventType =
@@ -347,91 +317,91 @@ export type StreamEventType =
  */
 export type StreamEvent =
   | {
-      /** 토큰 이벤트 */
-      type: "token";
-      /** 생성된 텍스트 */
-      content: string;
-    }
+    /** 토큰 이벤트 */
+    type: "token";
+    /** 생성된 텍스트 */
+    content: string;
+  }
   | {
-      /** 사고 과정 이벤트 */
-      type: "thinking";
-      /** 사고 내용 */
-      content: string;
-    }
+    /** 사고 과정 이벤트 */
+    type: "thinking";
+    /** 사고 내용 */
+    content: string;
+  }
   | {
-      /** 도구 요청 이벤트 (도구 호출 시작 시) */
-      type: "tool_request";
-      /** 도구 이름 */
-      name: string;
-      /** 도구 인자 */
-      args: Record<string, unknown>;
-      /** 도구 호출 ID */
-      id: string;
-    }
+    /** 도구 요청 이벤트 (도구 호출 시작 시) */
+    type: "tool_request";
+    /** 도구 이름 */
+    name: string;
+    /** 도구 인자 */
+    args: Record<string, unknown>;
+    /** 도구 호출 ID */
+    id: string;
+  }
   | {
-      /** 도구 실행 결과 이벤트 */
-      type: "tool_result";
-      /** 도구 이름 */
-      name: string;
-      /** 실행 결과 */
-      content: string;
-      /** 도구 호출 ID */
-      tool_call_id: string;
-    }
+    /** 도구 실행 결과 이벤트 */
+    type: "tool_result";
+    /** 도구 이름 */
+    name: string;
+    /** 실행 결과 */
+    content: string;
+    /** 도구 호출 ID */
+    tool_call_id: string;
+  }
   | {
-      /** 진행 상황 이벤트 */
-      type: "progress";
-      /** 진행 메시지 */
-      content: string;
-    }
+    /** 진행 상황 이벤트 */
+    type: "progress";
+    /** 진행 메시지 */
+    content: string;
+  }
   | {
-      /** 구조화된 출력 이벤트 */
-      type: "structured_output";
-      /** 출력 데이터 */
-      output: unknown;
-    }
+    /** 구조화된 출력 이벤트 */
+    type: "structured_output";
+    /** 출력 데이터 */
+    output: unknown;
+  }
   | {
-      /** 도구 호출 요청 이벤트 (수동 도구 실행 필요 시) */
-      type: "tool_call_required";
-      /** 세션 ID */
-      session_id: string;
-      /** 실행해야 할 도구 목록 */
-      tool_calls: ToolCall[];
-      /** 체크포인트 설정 정보 */
-      configurable: Configurable;
-    }
+    /** 도구 호출 요청 이벤트 (수동 도구 실행 필요 시) */
+    type: "tool_call_required";
+    /** 세션 ID */
+    session_id: string;
+    /** 실행해야 할 도구 목록 */
+    tool_calls: ToolCall[];
+    /** 체크포인트 설정 정보 */
+    configurable: Configurable;
+  }
   | {
-      /** 최종 응답 이벤트 */
-      type: "final_response";
-      /** 세션 ID */
-      session_id: string;
-      /** AI의 응답 메시지 */
-      message: string;
-      /** AI의 사고 과정 */
-      thinking: string;
-      /** 구조화된 출력 (항상 null) */
-      parsed: null;
-      /** 도구 실행 결과 목록 */
-      tool_results: Array<Record<string, unknown>>;
-    }
+    /** 최종 응답 이벤트 */
+    type: "final_response";
+    /** 세션 ID */
+    session_id: string;
+    /** AI의 응답 메시지 */
+    message: string;
+    /** AI의 사고 과정 */
+    thinking: string;
+    /** 구조화된 출력 (항상 null) */
+    parsed: null;
+    /** 도구 실행 결과 목록 */
+    tool_results: Array<Record<string, unknown>>;
+  }
   | {
-      /** 채팅 제목 수정 이벤트 */
-      type: "edit_chat_title";
-      /** 상태 */
-      state: string;
-      /** 생성된 제목 */
-      message: string;
-    }
+    /** 채팅 제목 수정 이벤트 */
+    type: "edit_chat_title";
+    /** 상태 */
+    state: string;
+    /** 생성된 제목 */
+    message: string;
+  }
   | {
-      /** 스트림 종료 이벤트 */
-      type: "end";
-    }
+    /** 스트림 종료 이벤트 */
+    type: "end";
+  }
   | {
-      /** 오류 이벤트 */
-      type: "error";
-      /** 오류 메시지 */
-      error: string;
-    };
+    /** 오류 이벤트 */
+    type: "error";
+    /** 오류 메시지 */
+    error: string;
+  };
 
 /**
  * TimelyGPTClient 생성자 옵션
@@ -496,9 +466,9 @@ export function convertLegacyToolsToArray(options: {
   if (options.built_in_tools) {
     tools.push(
       ...options.built_in_tools.map(
-        (id): BuiltInTool => ({
+        (id): BuiltInToolDto => ({
           type: "built_in",
-          tool_id: id,
+          id: id,
         })
       )
     );
@@ -507,9 +477,9 @@ export function convertLegacyToolsToArray(options: {
   if (options.custom_tool_ids) {
     tools.push(
       ...options.custom_tool_ids.map(
-        (id): CustomToolReference => ({
-          type: "custom_tool_reference",
-          custom_tool_id: id,
+        (id): FunctionToolDto => ({
+          type: "function",
+          id: id,
         })
       )
     );
@@ -520,9 +490,10 @@ export function convertLegacyToolsToArray(options: {
   if (options.mcp_server_ids && options.mcp_server_ids.length > 0) {
     tools.push(
       ...options.mcp_server_ids.map(
-        (id): McpServerReference => ({
-          type: "mcp_server_reference",
-          mcp_server_id: id,
+        (id): RemoteMcpToolDto => ({
+          type: "mcp",
+          name: id,
+          url: id,
         })
       )
     );
@@ -532,57 +503,4 @@ export function convertLegacyToolsToArray(options: {
   }
 
   return tools;
-}
-
-/**
- * CompletionRequest에서 레거시 필드를 새로운 tools 배열로 자동 변환
- *
- * @param request - 원본 요청
- * @returns 변환된 요청
- *
- * @example
- * ```typescript
- * const legacyRequest: CompletionRequest = {
- *   session_id: 'session_123',
- *   messages: [{ role: 'user', content: '안녕하세요' }],
- *   model: 'gpt-4o-mini',
- *   built_in_tools: ['web_search'],
- *   custom_tool_ids: ['my_tool']
- * };
- *
- * // 레거시 필드를 tools 배열로 변환
- * const modernRequest = normalizeCompletionRequest(legacyRequest);
- * ```
- */
-export function normalizeCompletionRequest(
-  request: CompletionRequest
-): CompletionRequest {
-  // tools 배열이 이미 있으면 그대로 반환
-  if (request.tools && request.tools.length > 0) {
-    return request;
-  }
-
-  // 레거시 필드가 있으면 변환 (하위 호환성)
-  if (
-    request.built_in_tools ||
-    request.custom_tool_ids ||
-    request.mcp_server_ids
-  ) {
-    const tools = convertLegacyToolsToArray({
-      built_in_tools: request.built_in_tools,
-      custom_tool_ids: request.custom_tool_ids,
-      mcp_server_ids: request.mcp_server_ids,
-    });
-
-    // 레거시 필드 제거 및 tools 배열 추가
-    const { built_in_tools, custom_tool_ids, mcp_server_ids, ...rest } =
-      request;
-
-    return {
-      ...rest,
-      tools,
-    };
-  }
-
-  return request;
 }

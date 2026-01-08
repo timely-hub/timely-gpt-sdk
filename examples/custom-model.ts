@@ -14,7 +14,6 @@ async function main() {
       model: "gpt-5.1",
       instructions: "당신은 친절한 AI 어시스턴트입니다.",
       output_type: "TEXT",
-      use_all_built_in_tools: false,
       locale: "ko",
       stream: false,
     });

@@ -183,6 +183,7 @@ const client = new TimelyGPTClient(); // 모든 값이 환경변수에서 로드
 
 #### `client.chat.completions.create(params)`
 
+
 채팅 완성 요청을 생성합니다.
 
 **파라미터:**
@@ -196,20 +197,65 @@ interface CompletionRequest {
   output_type: 'TEXT' | 'JSON'; 
   output_schema: Record<string, any>
   properties: Record<string, any>
-  tool_configs: Record<string, any>
-  built_in_tools: string[]
-  custom_tool_ids: string[]
-  mcp_server_ids: string[]
   rag_storage_ids: string[]
   stream?: boolean;                      // 선택: 스트리밍 활성화 (기본값: false)
   locale?: string;                       // 선택: 언어 (기본값: 'ko')
   timezone?: string;                     // 선택: 타임존 (예: 'Asia/Seoul')
   thinking?: boolean;                    // 선택: 사고 과정 표시 모드
-  use_all_built_in_tools?: boolean;      // 선택: 모든 내장 도구 사용
+  tools: (RemoteMcpToolDto | FunctionToolDto | BuiltInToolDto)[]
   use_background_summarize?: boolean;    // 선택: 백그라운드 요약 (롱텀 컨텍스트 유지)
   checkpoint_id?: string;                // 선택: 체크포인트에서 재개
   files?: string[];                      // 선택: 파일 URL (이미지, 오디오)
   user_location?: UserLocation;          // 선택: 사용자 위치 데이터
+}
+
+interface RemoteMcpToolDto {
+  /** 도구 타입 */
+  type: 'mcp';
+  /** 원본 McpServerNode ID (있으면 참조 추적용) */
+  id?: string;
+  /** MCP 서버 이름 */
+  name: string;
+  /** MCP 서버 설명 */
+  description?: string;
+  /** MCP 서버 URL (SSE 엔드포인트) */
+  url: string;
+  /** 전송 방식 (stdio, sse 등) */
+  transport?: string;
+  /** 도구 실행 승인 요구 여부 (기본값: 'never') */
+  require_approval?: 'always' | 'never' | 'auto';
+  /** 허용할 도구 이름 목록 (미지정 시 전체 허용) */
+  allowed_tools?: string[];
+  /** 요청 헤더 (인증 토큰 등) */
+  headers?: Record<string, string>;
+}
+/**
+ * Function 도구 (OpenAI 호환, 클라이언트에서 실행)
+ */
+interface FunctionToolDto {
+  /** 도구 타입 */
+  type: 'function';
+  /** 원본 CustomToolNode ID (있으면 참조 추적용) */
+  id?: string;
+  /** 함수 이름 */
+  name: string;
+  /** 함수 설명 */
+  description?: string;
+  /** JSONSchema 입력 스키마 */
+  schema: Record<string, any>;
+  /** 함수 본문 (동적 실행용) */
+  function_body?: string;
+  /** 응답 스키마 */
+  response_schema?: Record<string, any>;
+}
+/**
+ * Built-in 도구 참조
+ */
+interface BuiltInToolDto {
+  /** 도구 타입 */
+  type: 'built_in';
+  /** Built-in 도구 ID (예: web_search, code_interpreter, all_tools) */
+  id: string;
 }
 ```
 
@@ -230,13 +276,10 @@ interface Message {
 interface ChatModelNode {
   model: ModelType;                      // 모델 이름 (자동완성 지원)
   instructions?: string;                 // 시스템 지시사항
-  use_all_built_in_tools?: boolean;      // 모든 내장 도구 활성화
+  tools: (RemoteMcpToolDto | FunctionToolDto | BuiltInToolDto)[]
   output_type?: 'TEXT' | 'JSON';         // 출력 형식
   output_schema?: Record<string, any>;   // JSON 출력 스키마
   properties?: Record<string, any>;      // 모델별 추가 속성
-  built_in_tools?: string[];             // 내장 도구 이름
-  custom_tool_ids?: string[];            // 커스텀 도구 ID
-  mcp_server_ids?: string[];             // MCP 서버 ID
   rag_storage_ids?: string[];            // RAG 스토리지 ID
 }
 ```
@@ -398,7 +441,12 @@ const response = await client.chat.completions.create({
   session_id: 'session_123',
   messages: [{ role: 'user', content: '오늘 날씨 알려줘' }],
   model: 'gpt-5.1',
-  use_all_built_in_tools: true,
+  tools: [
+    {
+      type: 'built_in',
+      id: 'all_tools'
+    }
+  ]
   stream: false,
 });
 
@@ -422,7 +470,12 @@ if (response.type === 'tool_call_required') {
     messages: toolResults,
     checkpoint_id: response.configurable.checkpoint_id,
     model: 'gpt-5.1',  // 이전과 동일한 모델 설정
-    use_all_built_in_tools: true,
+    tools: [
+      {
+        type: 'built_in',
+        id: 'all_tools'
+      }
+    ]
   });
 }
 ```

@@ -11,7 +11,12 @@ async function main() {
       session_id: "session_123",
       messages: [{ role: "user", content: "오늘 날씨는 어때?" }],
       model: "gpt-5.1",
-      use_all_built_in_tools: true,
+      tools: [
+        {
+          type: 'built_in',
+          id: 'all_tools'
+        }
+      ],
       output_type: "TEXT",
       instructions: "You are a helpful assistant.",
       stream: true,

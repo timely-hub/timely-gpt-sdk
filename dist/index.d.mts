@@ -98,6 +98,58 @@ interface UserLocation {
     /** 표시 이름 */
     displayName?: string;
 }
+interface RemoteMcpToolDto {
+    /** 도구 타입 */
+    type: 'mcp';
+    /** 원본 McpServerNode ID (있으면 참조 추적용) */
+    id?: string;
+    /** MCP 서버 이름 */
+    name: string;
+    /** MCP 서버 설명 */
+    description?: string;
+    /** MCP 서버 URL (SSE 엔드포인트) */
+    url: string;
+    /** 전송 방식 (stdio, sse 등) */
+    transport?: string;
+    /** 도구 실행 승인 요구 여부 (기본값: 'never') */
+    require_approval?: 'always' | 'never' | 'auto';
+    /** 허용할 도구 이름 목록 (미지정 시 전체 허용) */
+    allowed_tools?: string[];
+    /** 요청 헤더 (인증 토큰 등) */
+    headers?: Record<string, string>;
+}
+/**
+ * Function 도구 (OpenAI 호환, 클라이언트에서 실행)
+ */
+interface FunctionToolDto {
+    /** 도구 타입 */
+    type: 'function';
+    /** 원본 CustomToolNode ID (있으면 참조 추적용) */
+    id?: string;
+    /** 함수 이름 */
+    name?: string;
+    /** 함수 설명 */
+    description?: string;
+    /** JSONSchema 입력 스키마 */
+    schema?: Record<string, any> | null;
+    /** 함수 본문 (동적 실행용) */
+    function_body?: string;
+    /** 응답 스키마 */
+    response_schema?: Record<string, any>;
+}
+/**
+ * Built-in 도구 참조
+ */
+interface BuiltInToolDto {
+    /** 도구 타입 */
+    type: 'built_in';
+    /** Built-in 도구 ID (예: web_search, code_interpreter, all_tools) */
+    id: string;
+}
+/**
+ * 도구 타입 (통합)
+ */
+type Tool = RemoteMcpToolDto | FunctionToolDto | BuiltInToolDto;
 /**
  * 채팅 모델 노드 설정
  *
@@ -108,7 +160,12 @@ interface UserLocation {
  * const modelNode: ChatModelNode = {
  *   model: 'gpt-5.1',
  *   instructions: '당신은 친절한 AI 어시스턴트입니다.',
- *   use_all_built_in_tools: true,
+ *   tools: [
+ *     {
+ *       type: 'built_in',
+ *       id: 'all_tools'
+ *     }
+ *   ],
  *   output_type: 'TEXT',
  * };
  * ```
@@ -118,32 +175,55 @@ interface ChatModelNode {
     model: ModelType;
     /** 시스템 지시사항 */
     instructions?: string;
-    /** 모든 내장 도구 사용 여부 */
-    use_all_built_in_tools?: boolean;
+    /** 사용할 도구 목록 */
+    tools?: (RemoteMcpToolDto | FunctionToolDto | BuiltInToolDto)[];
     /** 출력 형식 (TEXT 또는 JSON) */
     output_type?: "TEXT" | "JSON";
     /** JSON 출력 스키마 (output_type이 'JSON'일 때 사용) */
     output_schema?: Record<string, any> | null;
     /** 모델별 추가 속성 (temperature, max_tokens 등) */
     properties?: Record<string, any> | null;
-    /** 사용할 내장 도구 ID 목록 */
-    built_in_tools?: string[];
-    /** 사용할 커스텀 도구 ID 목록 */
-    custom_tool_ids?: string[];
-    /** 사용할 MCP 서버 ID 목록 */
-    mcp_server_ids?: string[];
     /** 사용할 RAG 스토리지 ID 목록 */
     rag_storage_ids?: string[];
 }
 /**
  * 채팅 완성 요청 파라미터
+ *
+ * @example
+ * ```typescript
+ * // 새로운 tools 배열 사용 (권장)
+ * const request: CompletionRequest = {
+ *   session_id: 'session_123',
+ *   messages: [{ role: 'user', content: '안녕하세요' }],
+ *   model: 'gpt-4o-mini',
+ *   tools: [
+ *     { type: 'built_in', tool_id: 'web_search' },
+ *     { type: 'custom_tool_reference', custom_tool_id: 'my_tool' },
+ *     {
+ *       type: 'mcp',
+ *       server_label: 'my-server',
+ *       server_url: 'https://mcp.example.com',
+ *       require_approval: 'auto'
+ *     }
+ *   ]
+ * };
+ *
+ * // 레거시 필드 사용 (하위 호환성)
+ * const legacyRequest: CompletionRequest = {
+ *   session_id: 'session_123',
+ *   messages: [{ role: 'user', content: '안녕하세요' }],
+ *   model: 'gpt-4o-mini',
+ *   built_in_tools: ['web_search'],
+ *   custom_tool_ids: ['my_tool']
+ * };
+ * ```
  */
 interface CompletionRequest {
     /** 세션 ID (필수) */
     session_id: string;
     /** 대화 메시지 배열 (필수) */
     messages: Message[];
-    /** 모델 설정 */
+    /** 모델 설정 (필수) */
     model: string;
     /** 시스템 지시사항 */
     instructions?: string;
@@ -153,12 +233,8 @@ interface CompletionRequest {
     output_schema?: Record<string, any> | null;
     /** 모델별 추가 속성 (temperature, max_tokens 등) */
     properties?: Record<string, any> | null;
-    /** 사용할 내장 도구 ID 목록 */
-    built_in_tools?: string[];
-    /** 사용할 커스텀 도구 ID 목록 */
-    custom_tool_ids?: string[];
-    /** 사용할 MCP 서버 ID 목록 */
-    mcp_server_ids?: string[];
+    /** 사용할 도구 목록 */
+    tools?: Tool[];
     /** 사용할 RAG 스토리지 ID 목록 */
     rag_storage_ids?: string[];
     /** 채팅 타입 */
@@ -166,7 +242,7 @@ interface CompletionRequest {
     /** 사용자 메시지 ID */
     user_message_id?: string;
     /** 체크포인트 ID (대화 이어가기용) */
-    checkpoint_id?: string;
+    checkpoint_id?: string | null;
     /** 파일 URL 목록 (이미지, 오디오 등) */
     files?: string[];
     /** 언어 설정 (예: 'ko', 'en') */
@@ -174,15 +250,15 @@ interface CompletionRequest {
     /** 타임존 (예: 'Asia/Seoul') */
     timezone?: string;
     /** 사용자 위치 정보 */
-    user_location?: UserLocation;
+    user_location?: UserLocation | null;
     /** 스트리밍 활성화 여부 */
     stream?: boolean;
-    /** 모든 내장 도구 사용 여부 */
-    use_all_built_in_tools?: boolean;
     /** 백그라운드 요약 사용 여부 */
     use_background_summarize?: boolean;
     /** 사고 과정 표시 여부 */
     thinking?: boolean;
+    /** 대화 기록 사용 여부 */
+    never_use_history?: boolean;
 }
 /**
  * 도구 호출 정보
@@ -379,6 +455,32 @@ interface ErrorResponse {
     message: string;
     statusCode: number;
 }
+/**
+ * 레거시 도구 설정을 새로운 tools 배열로 변환하는 헬퍼 함수
+ *
+ * @param options - 레거시 도구 옵션
+ * @returns Tool 배열
+ *
+ * @example
+ * ```typescript
+ * const tools = convertLegacyToolsToArray({
+ *   built_in_tools: ['web_search', 'calculator'],
+ *   custom_tool_ids: ['my_tool_1', 'my_tool_2'],
+ * });
+ *
+ * const request: CompletionRequest = {
+ *   session_id: 'session_123',
+ *   messages: [{ role: 'user', content: '안녕하세요' }],
+ *   model: 'gpt-4o-mini',
+ *   tools,
+ * };
+ * ```
+ */
+declare function convertLegacyToolsToArray(options: {
+    built_in_tools?: string[];
+    custom_tool_ids?: string[];
+    mcp_server_ids?: string[];
+}): Tool[];
 
 /**
  * Server-Sent Events (SSE) 스트림을 처리하는 클래스
@@ -774,4 +876,4 @@ declare class TimelyGPTClient {
     constructor(options?: TimelyGPTClientOptions);
 }
 
-export { type AIWorkflowEdgeType, type AIWorkflowNodeType, APIError, AVAILABLE_MODELS, type AuthResponse, type ChatModelNode, type ChatType, type CompletionRequest, type CompletionResponse, type Configurable, type CustomToolInfo, type ErrorResponse, type ExecuteCodeCallback, type ExecutionLog, type Message, type MessageRole, type ModelType, type RunWorkflowOptions, Stream, type StreamEvent, type StreamEventType, TimelyGPTClient, type TimelyGPTClientOptions, type ToolCall, type UserLocation, WorkflowExecutionContext as WorkflowContext, type WorkflowContextOptions, type WorkflowExecutionState, type WorkflowListItem, type WorkflowListParams, type WorkflowListResponse, type WorkflowResponse, type WorkflowStartParams, TimelyGPTClient as default, executeWorkflow };
+export { type AIWorkflowEdgeType, type AIWorkflowNodeType, APIError, AVAILABLE_MODELS, type AuthResponse, type ChatModelNode, type ChatType, type CompletionRequest, type CompletionResponse, type Configurable, type CustomToolInfo, type ErrorResponse, type ExecuteCodeCallback, type ExecutionLog, type Message, type MessageRole, type ModelType, type RunWorkflowOptions, Stream, type StreamEvent, type StreamEventType, TimelyGPTClient, type TimelyGPTClientOptions, type Tool, type ToolCall, type UserLocation, WorkflowExecutionContext as WorkflowContext, type WorkflowContextOptions, type WorkflowExecutionState, type WorkflowListItem, type WorkflowListParams, type WorkflowListResponse, type WorkflowResponse, type WorkflowStartParams, convertLegacyToolsToArray, TimelyGPTClient as default, executeWorkflow };

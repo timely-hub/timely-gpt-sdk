@@ -25,6 +25,7 @@ __export(index_exports, {
   Stream: () => Stream,
   TimelyGPTClient: () => TimelyGPTClient,
   WorkflowContext: () => WorkflowExecutionContext,
+  convertLegacyToolsToArray: () => convertLegacyToolsToArray,
   default: () => index_default,
   executeWorkflow: () => executeWorkflow
 });
@@ -446,7 +447,37 @@ async function executeToolNode(node, context, allNodes) {
       const output = data.output;
       result = output;
     } else if (nodeData.type === "mcp") {
-      throw new Error("MCP \uB3C4\uAD6C \uC2E4\uD589\uC740 \uC544\uC9C1 \uC9C0\uC6D0\uB418\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4");
+      const transport = nodeData.tool.transport;
+      const serverUrl = nodeData.tool.url;
+      const canInvokeOnServer = transport === "sse" && serverUrl;
+      if (canInvokeOnServer && nodeData.allowedTools && nodeData.allowedTools.length > 0) {
+        const allowedTool = nodeData.allowedTools[0];
+        const accessToken = context.getAccessToken ? await context.getAccessToken() : "master";
+        const mcpInResponse = await fetch(
+          `${context.baseURL}/ai-workflow/mcp-server-node/invoke-tool`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${accessToken}`
+            },
+            body: JSON.stringify({
+              server_url: serverUrl,
+              tool_input: inputs,
+              tool_name: allowedTool,
+              headers: nodeData.headers
+            })
+          }
+        );
+        if (!mcpInResponse.ok) {
+          result = JSON.stringify({
+            error: "Built-in tool \uC2E4\uD589 \uC2E4\uD328"
+          });
+        } else {
+          const mcpInData = await mcpInResponse.json();
+          result = mcpInData.data.output;
+        }
+      }
     }
     context.onNodeResult?.(
       node.id,
@@ -695,14 +726,11 @@ async function executeLlmNode(node, context, edges, allNodes) {
       output_type: nodeData.output_type,
       output_schema: nodeData.output_schema,
       properties: nodeData.properties,
-      built_in_tools: nodeData.built_in_tools,
-      custom_tool_ids: nodeData.custom_tool_ids,
-      mcp_server_ids: nodeData.mcp_server_ids,
+      tools: nodeData.tools,
       rag_storage_ids: nodeData.rag_storage_ids,
       files: [],
       locale: "ko",
       user_location: null,
-      use_all_built_in_tools: false,
       use_background_summarize: rememberChat,
       never_use_history: !rememberChat,
       checkpoint_id: null,
@@ -1693,6 +1721,46 @@ var Workflow = class {
   }
 };
 
+// src/types.ts
+function convertLegacyToolsToArray(options) {
+  const tools = [];
+  if (options.built_in_tools) {
+    tools.push(
+      ...options.built_in_tools.map(
+        (id) => ({
+          type: "built_in",
+          id
+        })
+      )
+    );
+  }
+  if (options.custom_tool_ids) {
+    tools.push(
+      ...options.custom_tool_ids.map(
+        (id) => ({
+          type: "function",
+          id
+        })
+      )
+    );
+  }
+  if (options.mcp_server_ids && options.mcp_server_ids.length > 0) {
+    tools.push(
+      ...options.mcp_server_ids.map(
+        (id) => ({
+          type: "mcp",
+          name: id,
+          url: id
+        })
+      )
+    );
+    console.warn(
+      "mcp_server_ids\uB294 \uB354 \uC774\uC0C1 \uC9C0\uC6D0\uB418\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4. RemoteMcpTool\uC744 \uC9C1\uC811 \uAD6C\uC131\uD558\uC138\uC694."
+    );
+  }
+  return tools;
+}
+
 // src/generated/models.ts
 var AVAILABLE_MODELS = [
   "gpt-5.2",
@@ -1791,5 +1859,6 @@ var index_default = TimelyGPTClient;
   Stream,
   TimelyGPTClient,
   WorkflowContext,
+  convertLegacyToolsToArray,
   executeWorkflow
 });
