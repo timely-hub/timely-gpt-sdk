@@ -7,7 +7,6 @@ async function main() {
 
   try {
     const response = await client.chat.completions.create({
-      session_id: "session_" + Date.now(),
       messages: [
         { role: "user", content: "안녕하세요! 간단하게 인사해주세요." },
       ],

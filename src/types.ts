@@ -1,5 +1,11 @@
 import type { ModelType } from "./generated/models";
 
+
+import type { paths as chatPaths } from "./chat-schema";
+
+export type CompletionRequest =
+  chatPaths["/api/v2/chat/llm-completion"]["post"]["requestBody"]["content"]["application/json"];
+
 /** 메시지 역할 타입 */
 export type MessageRole = "user" | "assistant" | "tool";
 
@@ -163,50 +169,6 @@ export interface ChatModelNode {
  * };
  * ```
  */
-export interface CompletionRequest {
-  /** 세션 ID (필수) */
-  session_id: string;
-  /** 대화 메시지 배열 (필수) */
-  messages: Message[];
-  /** 모델 설정 (필수) */
-  model: string;
-  /** 시스템 지시사항 */
-  instructions?: string;
-  /** 출력 형식 (TEXT 또는 JSON) */
-  output_type?: "TEXT" | "JSON";
-  /** JSON 출력 스키마 (output_type이 'JSON'일 때 사용) */
-  output_schema?: Record<string, any> | null;
-  /** 모델별 추가 속성 (temperature, max_tokens 등) */
-  properties?: Record<string, any> | null;
-
-  /** 사용할 도구 목록 */
-  tools?: Tool[];
-
-  /** 사용할 RAG 스토리지 ID 목록 */
-  rag_storage_ids?: string[];
-  /** 채팅 타입 */
-  chat_type?: ChatType;
-  /** 사용자 메시지 ID */
-  user_message_id?: string;
-  /** 체크포인트 ID (대화 이어가기용) */
-  checkpoint_id?: string | null;
-  /** 파일 URL 목록 (이미지, 오디오 등) */
-  files?: string[];
-  /** 언어 설정 (예: 'ko', 'en') */
-  locale?: string;
-  /** 타임존 (예: 'Asia/Seoul') */
-  timezone?: string;
-  /** 사용자 위치 정보 */
-  user_location?: UserLocation | null;
-  /** 스트리밍 활성화 여부 */
-  stream?: boolean;
-  /** 백그라운드 요약 사용 여부 */
-  use_background_summarize?: boolean;
-  /** 사고 과정 표시 여부 */
-  thinking?: boolean;
-  /** 대화 기록 사용 여부 */
-  never_use_history?: boolean;
-}
 
 /**
  * 도구 호출 정보

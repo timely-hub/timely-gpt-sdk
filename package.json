@@ -29,7 +29,8 @@
     "test": "jest",
     "prepare": "npm run build",
     "postinstall": "npm run build",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "gen:chat-schema": "openapi-typescript http://localhost:8000/api-ai/v2/openapi-sdk.json -o ./src/chat-schema.d.ts"
   },
   "keywords": [
     "timely",
@@ -49,6 +50,7 @@
   "devDependencies": {
     "@types/node": "^20.19.25",
     "@xyflow/react": "^12.10.0",
+    "openapi-typescript": "^7.10.1",
     "tsup": "^8.0.1",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"

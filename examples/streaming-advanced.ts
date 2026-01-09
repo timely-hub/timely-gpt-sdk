@@ -8,7 +8,6 @@ async function main() {
 
   try {
     const stream = await client.chat.completions.create({
-      session_id: "session_123",
       messages: [{ role: "user", content: "오늘 날씨는 어때?" }],
       model: "gpt-5.1",
       tools: [
@@ -17,11 +16,9 @@ async function main() {
           id: 'all_tools'
         }
       ],
-      output_type: "TEXT",
       instructions: "You are a helpful assistant.",
       stream: true,
       thinking: true,
-      locale: "ko",
     });
 
     let assistantMessage = "";
