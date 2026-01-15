@@ -404,7 +404,7 @@ async function executeToolNode(node, context, allNodes) {
     if (!nodeData) {
       throw new Error("Tool \uB178\uB4DC \uB370\uC774\uD130\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4");
     }
-    if (nodeData.type === "custom") {
+    if (nodeData.type === "custom" || nodeData.type === "function") {
       const functionCode = nodeData.tool.function_body ?? "";
       const toolName = nodeData.tool.name || nodeData.tool.id || "unknown";
       if (context.executeCodeCallback) {
@@ -654,9 +654,9 @@ async function executeLlmNode(node, context, edges, allNodes) {
                       result2 = JSON.stringify({
                         error: "\uB3C4\uAD6C\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4"
                       });
-                    } else if (tool.type === "custom") {
+                    } else if (tool.type === "function" || tool.type === "custom") {
                       const execResult = await executeCode(
-                        tool.functionCode || "",
+                        tool.function_body || "",
                         toolCall.args
                       );
                       if (!execResult.success) {

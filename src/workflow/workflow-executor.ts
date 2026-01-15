@@ -116,7 +116,7 @@ async function executeToolNode(
       throw new Error("Tool 노드 데이터가 없습니다");
     }
 
-    if (nodeData.type === "custom") {
+    if (nodeData.type === "custom" || nodeData.type === "function") {
       const functionCode = nodeData.tool.function_body ?? "";
       const toolName = nodeData.tool.name || nodeData.tool.id || "unknown";
 
@@ -441,14 +441,13 @@ async function executeLlmNode(
                     const tool = nodeData.tools?.find(
                       (t: any) => t.name === toolCall.name
                     );
-
                     if (!tool) {
                       result = JSON.stringify({
                         error: "도구를 찾을 수 없습니다",
                       });
-                    } else if (tool.type === "custom") {
+                    } else if (tool.type === "function" || tool.type === "custom") {
                       const execResult = await executeCode(
-                        tool.functionCode || "",
+                        tool.function_body || "",
                         toolCall.args
                       );
 
