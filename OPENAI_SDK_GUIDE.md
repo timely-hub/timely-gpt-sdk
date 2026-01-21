@@ -107,7 +107,7 @@ const completion = await client.chat.completions.create({
         { type: 'text', text: '이 이미지에 무엇이 있나요?' },
         {
           type: 'image_url',
-          image_url: { url: 'https://timelyaipython.blob.core.windows.net/image/01JXVW7PKMK7NP2EVJJKYVTYJH/01KCJTY3BW0SGH3JE00HBCF19T.png' }
+          image_url: { url: 'http://example.png' }
         }
       ]
     },
@@ -117,66 +117,9 @@ const completion = await client.chat.completions.create({
 console.log(completion.choices[0].message.content);
 ```
 
-### 도구 사용 (Function Calling)
-
-```typescript
-const tools = [
-  {
-    type: 'function',
-    function: {
-      name: 'get_weather',
-      description: '특정 위치의 현재 날씨를 가져옵니다',
-      parameters: {
-        type: 'object',
-        properties: {
-          location: {
-            type: 'string',
-            description: '도시 이름 (예: Seoul, Tokyo)'
-          },
-          unit: {
-            type: 'string',
-            enum: ['celsius', 'fahrenheit']
-          }
-        },
-        required: ['location']
-      }
-    }
-  }
-];
-
-const completion = await client.chat.completions.create({
-  model: 'openai/gpt-4o-mini',
-  messages: [
-    { role: 'user', content: '서울 날씨 알려줘' }
-  ],
-  tools: tools,
-});
-
-const toolCalls = completion.choices[0].message.tool_calls;
-if (toolCalls) {
-  console.log('호출할 도구:', toolCalls[0].function.name);
-  console.log('파라미터:', toolCalls[0].function.arguments);
-}
-```
-
 ## 이미지 생성 (Image Generation)
 
-### DALL-E로 이미지 생성
-
-```typescript
-const response = await client.images.generate({
-  model: 'dall-e-3',
-  prompt: '우주를 여행하는 고양이',
-  n: 1,
-  size: '1024x1024',
-  quality: 'standard',
-  response_format: 'url',
-});
-
-console.log('생성된 이미지:', response.data[0].url);
-```
-
-### Flux 모델로 이미지 생성
+### 나노바나나 모델로 이미지 생성
 
 ```typescript
   const completion = await client.chat.completions.create({
