@@ -38,8 +38,22 @@ const { executeCode } = {
     params: Record<string, any>
   ): Promise<{ success: boolean; result: any; error: string | null }> => {
     try {
-      const func = new Function("params", code);
-      const result = await Promise.resolve(func(params));
+      // AsyncFunction을 사용하여 async/await 코드 실행 가능
+      const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+
+      // params를 wrapping하여 코드 내에서 직접 접근 가능하도록 함
+      const wrappedCode = `
+        const params = arguments[0];
+
+        // 사용자 코드 실행
+        return await (async function() {
+          ${code}
+        })();
+      `;
+
+      const executorFunction = new AsyncFunction(wrappedCode);
+      const result = await executorFunction(params);
+
       return {
         success: true,
         result,
