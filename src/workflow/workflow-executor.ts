@@ -446,18 +446,23 @@ async function executeLlmNode(
                         error: "도구를 찾을 수 없습니다",
                       });
                     } else if (tool.type === "function" || tool.type === "custom") {
-                      const execResult = await executeCode(
-                        tool.function_body || "",
-                        toolCall.args
-                      );
-
-                      // Custom tool 실행 결과 검증
-                      if (!execResult.success) {
-                        result = JSON.stringify({
-                          error: execResult.error || "도구 실행 실패",
-                        });
+                      if (context.executeCodeCallback) {
+                        result = await context.executeCodeCallback(
+                          toolCall.name,
+                          toolCall.args,
+                          tool.function_body || ""
+                        );
                       } else {
-                        result = JSON.stringify(execResult);
+                        const executionResult = await executeCode(tool.function_body || "", toolCall.args);
+                
+                        // Custom tool 실행 결과 검증
+                        if (!executionResult.success) {
+                          throw new Error(
+                            executionResult.error || "Custom tool 실행 실패 (알 수 없는 오류)"
+                          );
+                        }
+                
+                        result = executionResult?.result ?? executionResult;
                       }
                     } else if (tool.type === "built-in") {
                       const accessToken = context.getAccessToken
