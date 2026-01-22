@@ -494,6 +494,9 @@ async function executeLlmNode(
                       });
                     }
 
+                    if(result && typeof result !== 'string') {
+                      result = JSON.stringify(result);
+                    }
                     return {
                       role: "tool" as const,
                       name: toolCall.name,
