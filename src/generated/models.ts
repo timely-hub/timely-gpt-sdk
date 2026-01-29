@@ -34,9 +34,6 @@ export type ModelType =
   | 'claude-sonnet-4-5'
   | 'claude-opus-4-5'
   | 'claude-haiku-4-5'
-  | 'claude-opus-4-1'
-  | 'claude-sonnet-4-0'
-  | 'claude-opus-4-0'
   | 'llama-4-scout-17b'
   | 'llama-4-maverick-17b'
   | 'mistral-small'
@@ -88,9 +85,6 @@ export const AVAILABLE_MODELS: readonly ModelType[] = [
   'claude-sonnet-4-5',
   'claude-opus-4-5',
   'claude-haiku-4-5',
-  'claude-opus-4-1',
-  'claude-sonnet-4-0',
-  'claude-opus-4-0',
   'llama-4-scout-17b',
   'llama-4-maverick-17b',
   'mistral-small',
