@@ -61,18 +61,19 @@ const client = new OpenAI({
 [
   "google/gemini-3-flash-preview",
   "x-ai/grok-4.1-fast",
-  "openai/gpt-5.1-codex-mini",
-  "openai/gpt-5-image-mini",
   "anthropic/claude-haiku-4.5",
   "google/gemini-2.5-flash-image",
   "x-ai/grok-4-fast",
   "x-ai/grok-code-fast-1",
+  "google/gemini-2.5-flash-lite",
+  "openai/gpt-5.1-codex-mini",
+  "openai/gpt-5-image-mini",
   "openai/gpt-5-mini",
   "openai/gpt-5-nano",
-  "google/gemini-2.5-flash-lite",
   "openai/gpt-4.1-mini",
   "openai/gpt-4o-mini",
 ];
+// cursor 에디터에는 openai 모델이 사용 불가. (openrouter 공급자 버그)
 ```
 
 ## 채팅 완료 (Chat Completions)
