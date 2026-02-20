@@ -20,6 +20,7 @@ export type ModelType =
   | 'gpt-4o'
   | 'gpt-o4-mini'
   | 'gpt-o3'
+  | 'gpt-5.2-codex'
   | 'gpt-5.1-codex'
   | 'gpt-5.1-codex-mini'
   | 'gpt-5-codex'
@@ -32,11 +33,8 @@ export type ModelType =
   | 'gemini-2.0-flash'
   | 'gemini-2.5-pro'
   | 'claude-sonnet-4-5'
-  | 'claude-opus-4-5'
+  | 'claude-opus-4-6'
   | 'claude-haiku-4-5'
-  | 'claude-opus-4-1'
-  | 'claude-sonnet-4-0'
-  | 'claude-opus-4-0'
   | 'llama-4-scout-17b'
   | 'llama-4-maverick-17b'
   | 'mistral-small'
@@ -74,6 +72,7 @@ export const AVAILABLE_MODELS: readonly ModelType[] = [
   'gpt-4o',
   'gpt-o4-mini',
   'gpt-o3',
+  'gpt-5.2-codex',
   'gpt-5.1-codex',
   'gpt-5.1-codex-mini',
   'gpt-5-codex',
@@ -86,11 +85,8 @@ export const AVAILABLE_MODELS: readonly ModelType[] = [
   'gemini-2.0-flash',
   'gemini-2.5-pro',
   'claude-sonnet-4-5',
-  'claude-opus-4-5',
+  'claude-opus-4-6',
   'claude-haiku-4-5',
-  'claude-opus-4-1',
-  'claude-sonnet-4-0',
-  'claude-opus-4-0',
   'llama-4-scout-17b',
   'llama-4-maverick-17b',
   'mistral-small',

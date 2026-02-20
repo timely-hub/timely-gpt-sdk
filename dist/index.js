@@ -347,8 +347,18 @@ function decodeJwtPayload(token) {
 var { executeCode } = {
   executeCode: async (code, params) => {
     try {
-      const func = new Function("params", code);
-      const result = await Promise.resolve(func(params));
+      const AsyncFunction = Object.getPrototypeOf(async function() {
+      }).constructor;
+      const wrappedCode = `
+        const params = arguments[0];
+
+        // \uC0AC\uC6A9\uC790 \uCF54\uB4DC \uC2E4\uD589
+        return await (async function() {
+          ${code}
+        })();
+      `;
+      const executorFunction = new AsyncFunction(wrappedCode);
+      const result = await executorFunction(params);
       return {
         success: true,
         result,
@@ -655,16 +665,20 @@ async function executeLlmNode(node, context, edges, allNodes) {
                         error: "\uB3C4\uAD6C\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4"
                       });
                     } else if (tool.type === "function" || tool.type === "custom") {
-                      const execResult = await executeCode(
-                        tool.function_body || "",
-                        toolCall.args
-                      );
-                      if (!execResult.success) {
-                        result2 = JSON.stringify({
-                          error: execResult.error || "\uB3C4\uAD6C \uC2E4\uD589 \uC2E4\uD328"
-                        });
+                      if (context.executeCodeCallback) {
+                        result2 = await context.executeCodeCallback(
+                          toolCall.name,
+                          toolCall.args,
+                          tool.function_body || ""
+                        );
                       } else {
-                        result2 = JSON.stringify(execResult);
+                        const executionResult = await executeCode(tool.function_body || "", toolCall.args);
+                        if (!executionResult.success) {
+                          throw new Error(
+                            executionResult.error || "Custom tool \uC2E4\uD589 \uC2E4\uD328 (\uC54C \uC218 \uC5C6\uB294 \uC624\uB958)"
+                          );
+                        }
+                        result2 = executionResult?.result ?? executionResult;
                       }
                     } else if (tool.type === "built-in") {
                       const accessToken = context.getAccessToken ? await context.getAccessToken() : "master";
@@ -691,6 +705,9 @@ async function executeLlmNode(node, context, edges, allNodes) {
                       result2 = JSON.stringify({
                         error: "\uC9C0\uC6D0\uD558\uC9C0 \uC54A\uB294 \uB3C4\uAD6C \uD0C0\uC785"
                       });
+                    }
+                    if (result2 && typeof result2 !== "string") {
+                      result2 = JSON.stringify(result2);
                     }
                     return {
                       role: "tool",
@@ -1776,6 +1793,7 @@ var AVAILABLE_MODELS = [
   "gpt-4o",
   "gpt-o4-mini",
   "gpt-o3",
+  "gpt-5.2-codex",
   "gpt-5.1-codex",
   "gpt-5.1-codex-mini",
   "gpt-5-codex",
@@ -1788,11 +1806,8 @@ var AVAILABLE_MODELS = [
   "gemini-2.0-flash",
   "gemini-2.5-pro",
   "claude-sonnet-4-5",
-  "claude-opus-4-5",
+  "claude-opus-4-6",
   "claude-haiku-4-5",
-  "claude-opus-4-1",
-  "claude-sonnet-4-0",
-  "claude-opus-4-0",
   "llama-4-scout-17b",
   "llama-4-maverick-17b",
   "mistral-small",
