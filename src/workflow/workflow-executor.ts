@@ -39,7 +39,9 @@ const { executeCode } = {
   ): Promise<{ success: boolean; result: any; error: string | null }> => {
     try {
       // AsyncFunction을 사용하여 async/await 코드 실행 가능
-      const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+      const AsyncFunction = Object.getPrototypeOf(
+        async function () {}
+      ).constructor;
 
       // params를 wrapping하여 코드 내에서 직접 접근 가능하도록 함
       const wrappedCode = `
@@ -190,7 +192,11 @@ async function executeToolNode(
       const transport = nodeData.tool.transport;
       const serverUrl = nodeData.tool.url;
       const canInvokeOnServer = transport === "sse" && serverUrl;
-      if (canInvokeOnServer && nodeData.allowedTools && nodeData.allowedTools.length > 0) {
+      if (
+        canInvokeOnServer &&
+        nodeData.allowedTools &&
+        nodeData.allowedTools.length > 0
+      ) {
         const allowedTool = nodeData.allowedTools[0];
         const accessToken = context.getAccessToken
           ? await context.getAccessToken()
@@ -459,7 +465,10 @@ async function executeLlmNode(
                       result = JSON.stringify({
                         error: "도구를 찾을 수 없습니다",
                       });
-                    } else if (tool.type === "function" || tool.type === "custom") {
+                    } else if (
+                      tool.type === "function" ||
+                      tool.type === "custom"
+                    ) {
                       if (context.executeCodeCallback) {
                         result = await context.executeCodeCallback(
                           toolCall.name,
@@ -467,15 +476,19 @@ async function executeLlmNode(
                           tool.function_body || ""
                         );
                       } else {
-                        const executionResult = await executeCode(tool.function_body || "", toolCall.args);
-                
+                        const executionResult = await executeCode(
+                          tool.function_body || "",
+                          toolCall.args
+                        );
+
                         // Custom tool 실행 결과 검증
                         if (!executionResult.success) {
                           throw new Error(
-                            executionResult.error || "Custom tool 실행 실패 (알 수 없는 오류)"
+                            executionResult.error ||
+                              "Custom tool 실행 실패 (알 수 없는 오류)"
                           );
                         }
-                
+
                         result = executionResult?.result ?? executionResult;
                       }
                     } else if (tool.type === "built-in") {
@@ -508,7 +521,7 @@ async function executeLlmNode(
                       });
                     }
 
-                    if(result && typeof result !== 'string') {
+                    if (result && typeof result !== "string") {
                       result = JSON.stringify(result);
                     }
                     return {
@@ -791,7 +804,7 @@ async function executeEndNode(
               typeof sourceOutput === "string"
                 ? sourceOutput
                 : sourceOutput.lastMessage?.content ||
-                JSON.stringify(sourceOutput),
+                  JSON.stringify(sourceOutput),
           };
         } else {
           // JSON 모드
@@ -882,11 +895,11 @@ async function executeRAGNode(
           typeof sourceOutput === "string"
             ? { query: sourceOutput }
             : {
-              query:
-                sourceOutput.response ||
-                sourceOutput.userMessage ||
-                JSON.stringify(sourceOutput),
-            };
+                query:
+                  sourceOutput.response ||
+                  sourceOutput.userMessage ||
+                  JSON.stringify(sourceOutput),
+              };
       }
     }
   }
@@ -1338,7 +1351,11 @@ async function executeConditionNode(
   context: WorkflowContextType,
   allNodes: AIWorkflowNodeType[],
   edges: AIWorkflowEdgeType[]
-): Promise<{ selectedHandleId: string }> {
+): Promise<{
+  selectedHandleId: string;
+  conditionLabel: string;
+  conditionIndex: number;
+}> {
   const conditions = node.data.nodeData?.conditions || [];
 
   // 1. 평가 컨텍스트 구성 (nodeType:nodeName 형식으로 키 생성하여 충돌 방지)
@@ -1401,7 +1418,11 @@ async function executeConditionNode(
           "조건 노드 조건 매칭"
         );
 
-        return { selectedHandleId: condition.outputHandleId };
+        return {
+          selectedHandleId: condition.outputHandleId,
+          conditionLabel: condition.label,
+          conditionIndex: i,
+        };
       }
     } catch (error) {
       console.error(`[조건 평가 실패] 조건 ${i + 1}:`, error);
@@ -1423,7 +1444,11 @@ async function executeConditionNode(
   const defaultHandleId =
     node.data.nodeData?.defaultOutputHandleId || `${node.id}-output-default`;
 
-  return { selectedHandleId: defaultHandleId };
+  return {
+    selectedHandleId: defaultHandleId,
+    conditionLabel: "else",
+    conditionIndex: -1,
+  };
 }
 /**
  * Upload 노드 실행
@@ -1508,7 +1533,8 @@ async function executeNode(
       return executeUploadNode(node, context, allNodes, edges);
     default:
       throw new Error(
-        `지원하지 않는 노드 타입: ${(node as { type?: string })?.type ?? "unknown"
+        `지원하지 않는 노드 타입: ${
+          (node as { type?: string })?.type ?? "unknown"
         }`
       );
   }
