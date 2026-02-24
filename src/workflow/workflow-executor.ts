@@ -565,6 +565,8 @@ async function executeLlmNode(
       properties: nodeData.properties,
       tools: nodeData.tools,
       rag_storage_ids: nodeData.rag_storage_ids,
+      pre_retrieval_ids:
+        nodeData.pre_retrieval_ids ?? nodeData.rag_storage_ids ?? [],
       files: [],
       locale: "ko",
       user_location: null,

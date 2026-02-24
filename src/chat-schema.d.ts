@@ -511,7 +511,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v2/chat/ai-workflow/helper-node/run-js-code": {
+    "/api/v2/chat/ai-workflow/chat-model-node/from-chat-session/{chatSessionId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -520,8 +520,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 코드 실행 */
-        post: operations["HelperNodeController_runJavascriptCode"];
+        /** 채팅 세션으로부터 Chat Model 생성 */
+        post: operations["ChatModelNodeController_createChatModelFromChatSession"];
         delete?: never;
         options?: never;
         head?: never;
@@ -616,6 +616,26 @@ export interface paths {
         put?: never;
         /** 내장 도구 실행 */
         post: operations["BuiltInToolNodeController_invokeBuiltInTool"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/chat/built-in-tool-node/tts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 텍스트 음성 변환
+         * @description 텍스트를 음성으로 변환합니다.
+         */
+        post: operations["BuiltInToolNodeController_tts"];
         delete?: never;
         options?: never;
         head?: never;
@@ -775,7 +795,7 @@ export interface components {
              * @example gpt-5.2
              * @enum {string}
              */
-            value: "gpt-5.2" | "gpt-5.2 chat" | "gpt-5.2-pro" | "gpt-5.1" | "gpt-5.1 chat" | "gpt-5" | "gpt-5-mini" | "gpt-5-nano" | "gpt-5-pro" | "gpt-4.1-mini" | "gpt-4.1" | "gpt-4.1-nano" | "gpt-4o-mini" | "gpt-4o" | "gpt-o4-mini" | "gpt-o3" | "gpt-5.1-codex" | "gpt-5.1-codex-mini" | "gpt-5-codex" | "codex-mini" | "o3-deep-research" | "o4-mini-deep-research" | "gpt-4o-mini-search" | "gpt-4o-search" | "text-embedding-3-large" | "gpt-4o-mini-realtime" | "gpt-image-1.5" | "gpt-image-1" | "gpt-image-1-mini" | "dall-e-3" | "whisper" | "gpt-4o-mini-transcribe" | "sora-2" | "sora-2-pro" | "gemini-3-flash" | "gemini-3-pro" | "gemini-2.5-flash-lite" | "gemini-2.0-flash-lite" | "gemini-2.5-flash" | "gemini-2.0-flash" | "gemini-2.5-pro" | "veo-3.1" | "veo-3.1-fast" | "veo-3" | "veo-3-fast" | "veo-2" | "gemini-3-pro-image" | "gemini-2.5-flash-image" | "imagen-4" | "imagen-4-fast" | "imagen-4-ultra" | "imagen-3" | "sonar-pro" | "sonar" | "sonar-reasoning" | "sonar-reasoning-pro" | "sonar-deep-research" | "claude-sonnet-4-5" | "claude-opus-4-5" | "claude-haiku-4-5" | "claude-opus-4-1" | "claude-sonnet-4-0" | "claude-opus-4-0" | "claude-3-7-sonnet" | "claude-3-5-sonnet" | "claude-3-5-haiku" | "llama-4-scout-17b" | "llama-4-maverick-17b" | "mistral-small" | "mistral-medium" | "mistral-large" | "magistral-medium" | "magistral-small" | "devstral-medium" | "codestral" | "qwen-qwq-32b" | "deepseek-r1-distill-llama-70b" | "gen3a_turbo" | "gen4_turbo" | "gen4_image" | "gen4_image_turbo" | "gladia-whisper" | "2025-05-14-multilingual" | "grok-4-1-fast-reasoning" | "grok-4-1-fast-non-reasoning" | "grok-4-fast-reasoning" | "grok-4-fast-non-reasoning" | "grok-4" | "grok-3" | "grok-3-mini" | "grok-3-fast" | "grok-3-mini-fast" | "grok-code-fast" | "solar-pro2" | "sotak" | "tavily" | "flux-2-pro" | "flux-1-dev" | "flux-1-kontext-max" | "flux-1-kontext-pro" | "flux-pro-1.1" | "flux-pro-1.1-ultra" | "kling-v2-1-standard" | "kling-v2-1-pro" | "kling-v2-1-master";
+            value: "gpt-5.2" | "gpt-5.2 chat" | "gpt-5.2-pro" | "gpt-5.1" | "gpt-5.1 chat" | "gpt-5" | "gpt-5-mini" | "gpt-5-nano" | "gpt-5-pro" | "gpt-4.1-mini" | "gpt-4.1" | "gpt-4.1-nano" | "gpt-4o-mini" | "gpt-4o" | "gpt-o4-mini" | "gpt-o3" | "gpt-5.2-codex" | "gpt-5.1-codex" | "gpt-5.1-codex-mini" | "gpt-5-codex" | "codex-mini" | "o3-deep-research" | "o4-mini-deep-research" | "gpt-4o-mini-search" | "gpt-4o-search" | "text-embedding-3-large" | "gpt-4o-mini-realtime" | "gpt-image-1.5" | "gpt-image-1" | "gpt-image-1-mini" | "dall-e-2" | "dall-e-3" | "whisper" | "gpt-4o-mini-transcribe" | "sora-2" | "sora-2-pro" | "gemini-3-flash" | "gemini-3.1-pro" | "gemini-3-pro" | "gemini-2.5-flash-lite" | "gemini-2.0-flash-lite" | "gemini-2.5-flash" | "gemini-2.0-flash" | "gemini-2.5-pro" | "veo-3.1" | "veo-3.1-fast" | "veo-3" | "veo-3-fast" | "veo-2" | "gemini-3-pro-image" | "gemini-2.5-flash-image" | "imagen-4" | "imagen-4-fast" | "imagen-4-ultra" | "imagen-3" | "gemini-2.5-flash-tts" | "sonar-pro" | "sonar" | "sonar-reasoning-pro" | "sonar-deep-research" | "claude-sonnet-4-6" | "claude-sonnet-4-5" | "claude-opus-4-6" | "claude-opus-4-5" | "claude-haiku-4-5" | "claude-opus-4-1" | "claude-sonnet-4-0" | "claude-opus-4-0" | "claude-3-7-sonnet" | "claude-3-5-sonnet" | "claude-3-5-haiku" | "llama-4-scout-17b" | "llama-4-maverick-17b" | "mistral-small" | "mistral-medium" | "mistral-large" | "magistral-medium" | "magistral-small" | "devstral-medium" | "codestral" | "qwen-qwq-32b" | "deepseek-r1-distill-llama-70b" | "gen3a_turbo" | "gen4_turbo" | "gen4_image" | "gen4_image_turbo" | "gladia-whisper" | "2025-05-14-multilingual" | "grok-4-1-fast-reasoning" | "grok-4-1-fast-non-reasoning" | "grok-4-fast-reasoning" | "grok-4-fast-non-reasoning" | "grok-4" | "grok-3" | "grok-3-mini" | "grok-3-fast" | "grok-3-mini-fast" | "grok-code-fast" | "grok-imagine-image-pro" | "grok-imagine-image" | "grok-imagine-video" | "solar-pro2" | "sotak" | "tavily" | "flux-2-pro" | "flux-1-dev" | "flux-1-kontext-max" | "flux-1-kontext-pro" | "flux-pro-1.1" | "flux-pro-1.1-ultra" | "kling-v2-1-standard" | "kling-v2-1-pro" | "kling-v2-1-master";
             /**
              * @description 모델 이름
              * @example gpt-4o-mini
@@ -1001,7 +1021,7 @@ export interface components {
              * @example NORMAL
              * @enum {string}
              */
-            type?: "NORMAL" | "LABS_IMAGE" | "RAG" | "LABS_YOUTUBE_SUMMARIZE" | "LABS_REALTIME" | "LABS_TRANSCRIBER" | "LABS_PERPLEXITY" | "PROMPT" | "CHATBOT" | "TOOL" | "LABS_STUDIO" | "LABS_AI_DETECTOR" | "LABS_CANVAS" | "LABS_NANO_BANANA" | "DYNAMIC_CHAT" | "CUSTOM_CHAT_MODEL";
+            type?: "NORMAL" | "LABS_IMAGE" | "RAG" | "LABS_YOUTUBE_SUMMARIZE" | "LABS_REALTIME" | "LABS_TRANSCRIBER" | "LABS_PERPLEXITY" | "PROMPT" | "CHATBOT" | "TOOL" | "LABS_STUDIO" | "LABS_AI_DETECTOR" | "LABS_CANVAS" | "LABS_NANO_BANANA" | "DYNAMIC_CHAT" | "CUSTOM_CHAT_MODEL" | "API_CHAT";
             /**
              * @description 옵션 (잠재적으로 제거될 옵션)
              * @example null
@@ -1219,7 +1239,7 @@ export interface components {
              * @example NORMAL
              * @enum {string}
              */
-            type?: "NORMAL" | "LABS_IMAGE" | "RAG" | "LABS_YOUTUBE_SUMMARIZE" | "LABS_REALTIME" | "LABS_TRANSCRIBER" | "LABS_PERPLEXITY" | "PROMPT" | "CHATBOT" | "TOOL" | "LABS_STUDIO" | "LABS_AI_DETECTOR" | "LABS_CANVAS" | "LABS_NANO_BANANA" | "DYNAMIC_CHAT" | "CUSTOM_CHAT_MODEL";
+            type?: "NORMAL" | "LABS_IMAGE" | "RAG" | "LABS_YOUTUBE_SUMMARIZE" | "LABS_REALTIME" | "LABS_TRANSCRIBER" | "LABS_PERPLEXITY" | "PROMPT" | "CHATBOT" | "TOOL" | "LABS_STUDIO" | "LABS_AI_DETECTOR" | "LABS_CANVAS" | "LABS_NANO_BANANA" | "DYNAMIC_CHAT" | "CUSTOM_CHAT_MODEL" | "API_CHAT";
             /** @description 채팅 옵션 */
             options?: components["schemas"]["LLMOptionsDto"];
             /**
@@ -1255,7 +1275,7 @@ export interface components {
              * @description 채팅 타입
              * @enum {string}
              */
-            type?: "NORMAL" | "LABS_IMAGE" | "RAG" | "LABS_YOUTUBE_SUMMARIZE" | "LABS_REALTIME" | "LABS_TRANSCRIBER" | "LABS_PERPLEXITY" | "PROMPT" | "CHATBOT" | "TOOL" | "LABS_STUDIO" | "LABS_AI_DETECTOR" | "LABS_CANVAS" | "LABS_NANO_BANANA" | "DYNAMIC_CHAT" | "CUSTOM_CHAT_MODEL";
+            type?: "NORMAL" | "LABS_IMAGE" | "RAG" | "LABS_YOUTUBE_SUMMARIZE" | "LABS_REALTIME" | "LABS_TRANSCRIBER" | "LABS_PERPLEXITY" | "PROMPT" | "CHATBOT" | "TOOL" | "LABS_STUDIO" | "LABS_AI_DETECTOR" | "LABS_CANVAS" | "LABS_NANO_BANANA" | "DYNAMIC_CHAT" | "CUSTOM_CHAT_MODEL" | "API_CHAT";
             /** @description 채팅 옵션 */
             options?: components["schemas"]["LLMOptionsDto"];
             /** @description 조직 전체 채팅 여부 */
@@ -1374,7 +1394,7 @@ export interface components {
              * @example sonar
              * @enum {string}
              */
-            model: "sonar-reasoning-pro" | "sonar-reasoning" | "sonar-pro" | "sonar" | "sonar-deep-research";
+            model: "sonar-reasoning-pro" | "sonar-pro" | "sonar" | "sonar-deep-research";
             /**
              * @description 히스토리
              * @example []
@@ -1479,6 +1499,10 @@ export interface components {
             processing_status: string;
             /** @description 생성 시간 */
             created_at: string;
+            /** @description 요약 */
+            summary: string;
+            /** @description 파일 다운로드 URL */
+            url: string;
         };
         UploadToVectorStoreRequest: {
             /** @description 업로드할 파일 목록 */
@@ -1986,7 +2010,7 @@ export interface components {
              * @example NORMAL
              * @enum {string}
              */
-            type?: "NORMAL" | "LABS_IMAGE" | "RAG" | "LABS_YOUTUBE_SUMMARIZE" | "LABS_REALTIME" | "LABS_TRANSCRIBER" | "LABS_PERPLEXITY" | "PROMPT" | "CHATBOT" | "TOOL" | "LABS_STUDIO" | "LABS_AI_DETECTOR" | "LABS_CANVAS" | "LABS_NANO_BANANA" | "DYNAMIC_CHAT" | "CUSTOM_CHAT_MODEL";
+            type?: "NORMAL" | "LABS_IMAGE" | "RAG" | "LABS_YOUTUBE_SUMMARIZE" | "LABS_REALTIME" | "LABS_TRANSCRIBER" | "LABS_PERPLEXITY" | "PROMPT" | "CHATBOT" | "TOOL" | "LABS_STUDIO" | "LABS_AI_DETECTOR" | "LABS_CANVAS" | "LABS_NANO_BANANA" | "DYNAMIC_CHAT" | "CUSTOM_CHAT_MODEL" | "API_CHAT";
             /**
              * @description 가격
              * @example 0.0001
@@ -2492,6 +2516,24 @@ export interface components {
             originalText: string;
         };
         DetectAiRequest: Record<string, never>;
+        AiSheetOpsResponseDto: {
+            /** @description AI 답변 */
+            answer?: string;
+            /** @description 시트 변경 연산 목록 */
+            ops: string[];
+        };
+        AiSheetOpsRequestDto: {
+            /** @description 사용자 프롬프트 */
+            prompt: string;
+            /** @description 모델 이름 */
+            modelName?: string;
+            /** @description 워크북 스냅샷(JSON 문자열) */
+            workbookSnapshot?: string;
+            /** @description 선택된 범위(JSON 문자열) */
+            selectionRange?: string;
+            /** @description 대화 히스토리(JSON 문자열) */
+            history?: string;
+        };
         CanvasInputDto: {
             /**
              * @description 메시지 배열 또는 단일 메시지
@@ -2577,6 +2619,51 @@ export interface components {
              */
             files?: components["schemas"]["LLMFileDto"][];
         };
+        SuccessResponse: {
+            /** @description 성공 여부 */
+            success: boolean;
+            /**
+             * @description 상태 코드
+             * @default 200
+             */
+            status: number;
+        };
+        /**
+         * @description 오류 코드
+         * @enum {string}
+         */
+        ErrorCode: "400" | "401" | "402" | "403" | "404" | "500" | "503" | "1001" | "1002" | "1003" | "1004" | "1005" | "1006" | "1007" | "1008" | "1009" | "1010" | "1011" | "1012" | "1013" | "1014" | "1015";
+        ErrorResponseDto: {
+            /** @description false */
+            success: boolean;
+            /**
+             * @description status
+             * @default 400
+             */
+            status: number;
+            /**
+             * @description 오류 메시지
+             * @example 잘못된 요청입니다.
+             */
+            message: string;
+            /** @description 오류 코드 */
+            code: components["schemas"]["ErrorCode"];
+            /**
+             * @description 추가 데이터
+             * @example null
+             */
+            data?: Record<string, never>;
+            /**
+             * @description 요청 경로
+             * @example /api/v1/users
+             */
+            path: string;
+            /**
+             * @description 요청 시간
+             * @example 2024-01-15T10:30:00.000Z
+             */
+            timestamp: string;
+        };
         ApiBadRequestErrorDto: {
             /**
              * @description Success flag
@@ -2658,194 +2745,6 @@ export interface components {
             timestamp?: string;
             /** @description Request path */
             path?: string;
-        };
-        RndStartDto: {
-            /**
-             * @description 모델 키값
-             * @enum {string}
-             */
-            model: "gpt-5.2" | "gpt-5.2 chat" | "gpt-5.2-pro" | "gpt-5.1" | "gpt-5.1 chat" | "gpt-5" | "gpt-5-mini" | "gpt-5-nano" | "gpt-5-pro" | "gpt-4.1-mini" | "gpt-4.1" | "gpt-4.1-nano" | "gpt-4o-mini" | "gpt-4o" | "gpt-o4-mini" | "gpt-o3" | "gpt-5.1-codex" | "gpt-5.1-codex-mini" | "gpt-5-codex" | "codex-mini" | "o3-deep-research" | "o4-mini-deep-research" | "gpt-4o-mini-search" | "gpt-4o-search" | "text-embedding-3-large" | "gpt-4o-mini-realtime" | "gpt-image-1.5" | "gpt-image-1" | "gpt-image-1-mini" | "dall-e-3" | "whisper" | "gpt-4o-mini-transcribe" | "sora-2" | "sora-2-pro" | "gemini-3-flash" | "gemini-3-pro" | "gemini-2.5-flash-lite" | "gemini-2.0-flash-lite" | "gemini-2.5-flash" | "gemini-2.0-flash" | "gemini-2.5-pro" | "veo-3.1" | "veo-3.1-fast" | "veo-3" | "veo-3-fast" | "veo-2" | "gemini-3-pro-image" | "gemini-2.5-flash-image" | "imagen-4" | "imagen-4-fast" | "imagen-4-ultra" | "imagen-3" | "sonar-pro" | "sonar" | "sonar-reasoning" | "sonar-reasoning-pro" | "sonar-deep-research" | "claude-sonnet-4-5" | "claude-opus-4-5" | "claude-haiku-4-5" | "claude-opus-4-1" | "claude-sonnet-4-0" | "claude-opus-4-0" | "claude-3-7-sonnet" | "claude-3-5-sonnet" | "claude-3-5-haiku" | "llama-4-scout-17b" | "llama-4-maverick-17b" | "mistral-small" | "mistral-medium" | "mistral-large" | "magistral-medium" | "magistral-small" | "devstral-medium" | "codestral" | "qwen-qwq-32b" | "deepseek-r1-distill-llama-70b" | "gen3a_turbo" | "gen4_turbo" | "gen4_image" | "gen4_image_turbo" | "gladia-whisper" | "2025-05-14-multilingual" | "grok-4-1-fast-reasoning" | "grok-4-1-fast-non-reasoning" | "grok-4-fast-reasoning" | "grok-4-fast-non-reasoning" | "grok-4" | "grok-3" | "grok-3-mini" | "grok-3-fast" | "grok-3-mini-fast" | "grok-code-fast" | "solar-pro2" | "sotak" | "tavily" | "flux-2-pro" | "flux-1-dev" | "flux-1-kontext-max" | "flux-1-kontext-pro" | "flux-pro-1.1" | "flux-pro-1.1-ultra" | "kling-v2-1-standard" | "kling-v2-1-pro" | "kling-v2-1-master";
-            /** @description 사용자 메시지 */
-            message: string;
-            /**
-             * @description 사용 가능한 툴들
-             * @default []
-             */
-            toolSchemas: {
-                /** @description 도구 이름 */
-                name: string;
-                /** @description 도구 설명 */
-                description: string;
-                /** @description 도구 스키마 */
-                schema: {
-                    /** @constant */
-                    type: "object";
-                    properties: {
-                        [key: string]: {
-                            type: string;
-                            description?: string;
-                            enum?: string[];
-                            default?: unknown;
-                        };
-                    };
-                    required?: string[];
-                    additionalProperties?: boolean;
-                };
-            }[];
-            /** @description 기존 채팅 세션 ID (옵션) */
-            chatId?: string;
-            /**
-             * @description 스트리밍 모드 활성화
-             * @default false
-             */
-            stream: boolean;
-        };
-        RndResponseDto: {
-            /**
-             * @description 응답 타입
-             * @enum {string}
-             */
-            type: "tool_call_required" | "final_response" | "error";
-            /** @description 채팅 세션 ID */
-            chatId?: string;
-            /** @description 필요한 툴 호출들 */
-            toolCalls?: {
-                /** @description 툴 호출 ID */
-                toolCallId: string;
-                /** @description 툴 이름 */
-                toolName: string;
-                /** @description 툴 실행 매개변수 */
-                parameters: {
-                    [key: string]: unknown;
-                };
-            }[];
-            /** @description 최종 응답 메시지 */
-            message?: string;
-            /** @description 오류 메시지 */
-            error?: string;
-        };
-        ApiValidationErrorDto: {
-            /**
-             * @description Success flag
-             * @constant
-             */
-            success: false;
-            /** @description Error message */
-            message: string;
-            /** @description Error code */
-            code?: string;
-            /**
-             * @description Error type
-             * @constant
-             */
-            error: "Bad Request";
-            /**
-             * @description HTTP status code
-             * @constant
-             */
-            status: 400;
-            /** @description Error timestamp */
-            timestamp?: string;
-            /** @description Request path */
-            path?: string;
-        };
-        RndContinueDto: {
-            /** @description 채팅 세션 ID */
-            chatId: string;
-            /** @description 툴 실행 결과들 */
-            toolResults: {
-                /** @description 툴 호출 ID */
-                toolCallId: string;
-                /** @description 툴 이름 */
-                toolName: string;
-                /** @description 툴 실행 결과 */
-                result: unknown;
-                /** @description 오류 메시지 */
-                error?: string;
-            }[];
-            /**
-             * @description 스트리밍 모드 활성화
-             * @default false
-             */
-            stream: boolean;
-        };
-        RndStreamDto: {
-            /**
-             * @description 모델 키값
-             * @enum {string}
-             */
-            model: "gpt-5.2" | "gpt-5.2 chat" | "gpt-5.2-pro" | "gpt-5.1" | "gpt-5.1 chat" | "gpt-5" | "gpt-5-mini" | "gpt-5-nano" | "gpt-5-pro" | "gpt-4.1-mini" | "gpt-4.1" | "gpt-4.1-nano" | "gpt-4o-mini" | "gpt-4o" | "gpt-o4-mini" | "gpt-o3" | "gpt-5.1-codex" | "gpt-5.1-codex-mini" | "gpt-5-codex" | "codex-mini" | "o3-deep-research" | "o4-mini-deep-research" | "gpt-4o-mini-search" | "gpt-4o-search" | "text-embedding-3-large" | "gpt-4o-mini-realtime" | "gpt-image-1.5" | "gpt-image-1" | "gpt-image-1-mini" | "dall-e-3" | "whisper" | "gpt-4o-mini-transcribe" | "sora-2" | "sora-2-pro" | "gemini-3-flash" | "gemini-3-pro" | "gemini-2.5-flash-lite" | "gemini-2.0-flash-lite" | "gemini-2.5-flash" | "gemini-2.0-flash" | "gemini-2.5-pro" | "veo-3.1" | "veo-3.1-fast" | "veo-3" | "veo-3-fast" | "veo-2" | "gemini-3-pro-image" | "gemini-2.5-flash-image" | "imagen-4" | "imagen-4-fast" | "imagen-4-ultra" | "imagen-3" | "sonar-pro" | "sonar" | "sonar-reasoning" | "sonar-reasoning-pro" | "sonar-deep-research" | "claude-sonnet-4-5" | "claude-opus-4-5" | "claude-haiku-4-5" | "claude-opus-4-1" | "claude-sonnet-4-0" | "claude-opus-4-0" | "claude-3-7-sonnet" | "claude-3-5-sonnet" | "claude-3-5-haiku" | "llama-4-scout-17b" | "llama-4-maverick-17b" | "mistral-small" | "mistral-medium" | "mistral-large" | "magistral-medium" | "magistral-small" | "devstral-medium" | "codestral" | "qwen-qwq-32b" | "deepseek-r1-distill-llama-70b" | "gen3a_turbo" | "gen4_turbo" | "gen4_image" | "gen4_image_turbo" | "gladia-whisper" | "2025-05-14-multilingual" | "grok-4-1-fast-reasoning" | "grok-4-1-fast-non-reasoning" | "grok-4-fast-reasoning" | "grok-4-fast-non-reasoning" | "grok-4" | "grok-3" | "grok-3-mini" | "grok-3-fast" | "grok-3-mini-fast" | "grok-code-fast" | "solar-pro2" | "sotak" | "tavily" | "flux-2-pro" | "flux-1-dev" | "flux-1-kontext-max" | "flux-1-kontext-pro" | "flux-pro-1.1" | "flux-pro-1.1-ultra" | "kling-v2-1-standard" | "kling-v2-1-pro" | "kling-v2-1-master";
-            /** @description 동적 도구 통신용 WebSocket 식별자 */
-            socketId?: string;
-            /** @description 메시지 */
-            message: string;
-            /** @default [] */
-            toolSchemas: {
-                /** @description 도구 이름 */
-                name: string;
-                /** @description 도구 설명 */
-                description: string;
-                /** @description 도구 스키마 */
-                schema: {
-                    /** @constant */
-                    type: "object";
-                    properties: {
-                        [key: string]: {
-                            type: string;
-                            description?: string;
-                            enum?: string[];
-                            default?: unknown;
-                        };
-                    };
-                    required?: string[];
-                    additionalProperties?: boolean;
-                };
-            }[];
-        };
-        SuccessResponse: {
-            /** @description 성공 여부 */
-            success: boolean;
-            /**
-             * @description 상태 코드
-             * @default 200
-             */
-            status: number;
-        };
-        /**
-         * @description 오류 코드
-         * @enum {string}
-         */
-        ErrorCode: "400" | "401" | "402" | "403" | "404" | "500" | "503" | "1001" | "1002" | "1003" | "1004" | "1005" | "1006" | "1007" | "1008" | "1009" | "1010" | "1011" | "1012" | "1013" | "1014" | "1015";
-        ErrorResponseDto: {
-            /** @description false */
-            success: boolean;
-            /**
-             * @description status
-             * @default 400
-             */
-            status: number;
-            /**
-             * @description 오류 메시지
-             * @example 잘못된 요청입니다.
-             */
-            message: string;
-            /** @description 오류 코드 */
-            code: components["schemas"]["ErrorCode"];
-            /**
-             * @description 추가 데이터
-             * @example null
-             */
-            data?: Record<string, never>;
-            /**
-             * @description 요청 경로
-             * @example /api/v1/users
-             */
-            path: string;
-            /**
-             * @description 요청 시간
-             * @example 2024-01-15T10:30:00.000Z
-             */
-            timestamp: string;
         };
         CreateAiWorkflowDto: {
             /** @description 워크플로우 그룹 ID (있으면 해당 workflow의 Draft Upsert) */
@@ -3483,36 +3382,46 @@ export interface components {
                 user_relation?: "owner" | "admin" | "editor" | "viewer";
             };
         };
-        CustomToolNodeListResponseDto: {
+        CustomToolListWithCursorResponseDto: {
             /** @constant */
             success: true;
             status: number;
             data: {
-                /** @description 이름 */
-                name: string;
-                /** @description 설명 */
-                description?: string;
-                /** @description 스키마 */
-                schema?: {
-                    [key: string]: unknown;
+                /** @description Custom Tool 목록 */
+                list: {
+                    /** @description 이름 */
+                    name: string;
+                    /** @description 설명 */
+                    description?: string;
+                    /** @description 스키마 */
+                    schema?: {
+                        [key: string]: unknown;
+                    };
+                    /** @description 함수 본문 */
+                    function_body?: string;
+                    /** @description 응답 스키마 */
+                    response_schema?: {
+                        [key: string]: unknown;
+                    };
+                    /** @description ID */
+                    id: string;
+                    /** @description 사용자 SPACE MEMBER ID */
+                    user_id: string;
+                    /** @description 스페이스 ID */
+                    space_id?: string | null;
+                    /** @description 생성 일시 */
+                    created_at: string;
+                    /** @description 수정 일시 */
+                    updated_at: string;
+                }[];
+                /** @description 페이지 정보 */
+                page_info: {
+                    /** @description 다음 커서 */
+                    next_cursor?: string;
+                    /** @description 이전 커서 */
+                    previous_cursor?: string;
                 };
-                /** @description 함수 본문 */
-                function_body?: string;
-                /** @description 응답 스키마 */
-                response_schema?: {
-                    [key: string]: unknown;
-                };
-                /** @description ID */
-                id: string;
-                /** @description 사용자 SPACE MEMBER ID */
-                user_id: string;
-                /** @description 스페이스 ID */
-                space_id?: string | null;
-                /** @description 생성 일시 */
-                created_at: string;
-                /** @description 수정 일시 */
-                updated_at: string;
-            }[];
+            };
         };
         CustomToolNodeResponseDto: {
             /** @constant */
@@ -3795,34 +3704,44 @@ export interface components {
                 message: string;
             };
         };
-        McpServerListResponseDto: {
+        McpServerListWithCursorResponseDto: {
             /** @constant */
             success: true;
             status: number;
             data: {
-                /** @description MCP Server 이름 */
-                name: string;
-                /** @description MCP Server 설명 */
-                description?: string;
-                /** @description MCP Server URL */
-                url?: string;
-                /** @description 전송 방식 (stdio, sse 등) */
-                transport: string;
-                /** @description 환경변수, 인증 등 설정 */
-                config?: {
-                    [key: string]: unknown;
+                /** @description MCP Server 목록 */
+                list: {
+                    /** @description MCP Server 이름 */
+                    name: string;
+                    /** @description MCP Server 설명 */
+                    description?: string;
+                    /** @description MCP Server URL */
+                    url?: string;
+                    /** @description 전송 방식 (stdio, sse 등) */
+                    transport: string;
+                    /** @description 환경변수, 인증 등 설정 */
+                    config?: {
+                        [key: string]: unknown;
+                    };
+                    /** @description MCP Server ID */
+                    id: string;
+                    /** @description 사용자 ID */
+                    user_id: string;
+                    /** @description Space ID */
+                    space_id: string;
+                    /** @description 생성 일시 */
+                    created_at: string;
+                    /** @description 수정 일시 */
+                    updated_at: string;
+                }[];
+                /** @description 페이지 정보 */
+                page_info: {
+                    /** @description 다음 커서 */
+                    next_cursor?: string;
+                    /** @description 이전 커서 */
+                    previous_cursor?: string;
                 };
-                /** @description MCP Server ID */
-                id: string;
-                /** @description 사용자 ID */
-                user_id: string;
-                /** @description Space ID */
-                space_id: string;
-                /** @description 생성 일시 */
-                created_at: string;
-                /** @description 수정 일시 */
-                updated_at: string;
-            }[];
+            };
         };
         McpServerResponseDto: {
             /** @constant */
@@ -3940,107 +3859,127 @@ export interface components {
                 isError: boolean;
             };
         };
-        ChatModelListResponseDto: {
+        ChatModelListWithCursorResponseDto: {
             /** @constant */
             success: true;
             status: number;
             data: {
-                /** @description Chat Model 이름 */
-                name: string;
-                /** @description Chat Model 설명 */
-                description?: string;
-                /**
-                 * @description 모델명 (VisibleLLMModelValueType)
-                 * @enum {string}
-                 */
-                model: "gpt-5.2" | "gpt-5.2 chat" | "gpt-5.1" | "gpt-5.1 chat" | "gpt-5" | "gpt-5-mini" | "gpt-5-nano" | "gpt-4.1-mini" | "gpt-4.1" | "gpt-4o-mini" | "gpt-4o" | "gpt-o4-mini" | "gpt-o3" | "gpt-5.1-codex" | "gpt-5.1-codex-mini" | "gpt-5-codex" | "codex-mini" | "o3-deep-research" | "gemini-3-flash" | "gemini-3-pro" | "gemini-2.5-flash-lite" | "gemini-2.5-flash" | "gemini-2.0-flash" | "gemini-2.5-pro" | "claude-sonnet-4-5" | "claude-opus-4-5" | "claude-haiku-4-5" | "claude-opus-4-1" | "claude-sonnet-4-0" | "claude-opus-4-0" | "llama-4-scout-17b" | "llama-4-maverick-17b" | "mistral-small" | "mistral-medium" | "mistral-large" | "magistral-medium" | "magistral-small" | "devstral-medium" | "codestral" | "qwen-qwq-32b" | "grok-4-1-fast-reasoning" | "grok-4-1-fast-non-reasoning" | "grok-4-fast-reasoning" | "grok-4-fast-non-reasoning" | "grok-4" | "grok-3" | "grok-3-mini" | "grok-code-fast" | "solar-pro2";
-                /** @description 시스템 지시사항 */
-                instructions?: string;
-                /**
-                 * @description 노드 출력 타입
-                 * @enum {string}
-                 */
-                output_type?: "TEXT" | "JSON";
-                /** @description 노드 출력 스키마 (자유 형식) */
-                output_schema?: {
-                    [key: string]: unknown;
-                } | null;
-                /** @description 모델별 속성 (자유 형식) */
-                properties?: {
-                    [key: string]: unknown;
-                } | null;
-                /** @description 태그 목록 */
-                tags?: string[];
-                /** @description 도구 목록 */
-                tools?: ({
-                    /**
-                     * @description 도구 타입
-                     * @constant
-                     */
-                    type: "built_in";
-                    /** @description Built-in 도구 ID (예: web_search, code_interpreter, all_tools) */
-                    id: string;
-                } | {
-                    /**
-                     * @description 도구 타입
-                     * @constant
-                     */
-                    type: "function";
-                    /** @description CustomToolNode ID */
-                    id: string;
-                    /** @description 참조 ID (있으면 참조 추적용) */
-                    ref_id?: string;
-                    /** @description 함수 이름 */
+                /** @description Chat Model 목록 */
+                list: {
+                    /** @description Chat Model 이름 */
                     name: string;
-                    /** @description 함수 설명 */
+                    /** @description Chat Model 설명 */
                     description?: string;
-                    /** @description JSONSchema 입력 스키마 */
-                    schema: {
-                        [key: string]: unknown;
-                    };
-                    /** @description 함수 본문 (동적 실행용) */
-                    function_body?: string;
-                    /** @description 응답 스키마 */
-                    response_schema?: {
-                        [key: string]: unknown;
-                    };
-                } | {
                     /**
-                     * @description 도구 타입
-                     * @constant
-                     */
-                    type: "mcp";
-                    /** @description McpServerNode ID */
-                    id: string;
-                    /** @description 참조 ID (있으면 참조 추적용) */
-                    ref_id?: string;
-                    /** @description MCP 서버 이름 */
-                    name: string;
-                    /** @description MCP 서버 설명 */
-                    description?: string;
-                    /** @description MCP 서버 URL (SSE 엔드포인트) */
-                    url: string;
-                    /** @description 전송 방식 (stdio, sse 등) */
-                    transport?: string;
-                    /**
-                     * @description 도구 실행 승인 요구 여부
+                     * @description 모델명 (VisibleLLMModelValueType)
                      * @enum {string}
                      */
-                    require_approval?: "always" | "never" | "auto";
-                    /** @description 허용할 도구 이름 목록 (미지정 시 전체 허용) */
-                    allowed_tools?: string[];
-                    /** @description 요청 헤더 (인증 토큰 등) */
-                    headers?: {
-                        [key: string]: string;
-                    };
-                })[];
-                /** @description Chat Model ID */
-                id: string;
-                /** @description 사용자 ID */
-                user_id: string;
-                /** @description Space ID */
-                space_id: string;
-            }[];
+                    model: "gpt-5.2" | "gpt-5.2 chat" | "gpt-5.1" | "gpt-5.1 chat" | "gpt-5" | "gpt-5-mini" | "gpt-5-nano" | "gpt-4.1-mini" | "gpt-4.1" | "gpt-4o-mini" | "gpt-4o" | "gpt-o4-mini" | "gpt-o3" | "gpt-5.2-codex" | "gpt-5.1-codex" | "gpt-5.1-codex-mini" | "gpt-5-codex" | "codex-mini" | "o3-deep-research" | "gemini-3-flash" | "gemini-3.1-pro" | "gemini-3-pro" | "gemini-2.5-flash-lite" | "gemini-2.5-flash" | "gemini-2.0-flash" | "gemini-2.5-pro" | "claude-sonnet-4-6" | "claude-sonnet-4-5" | "claude-opus-4-6" | "claude-haiku-4-5" | "llama-4-scout-17b" | "llama-4-maverick-17b" | "mistral-small" | "mistral-medium" | "mistral-large" | "magistral-medium" | "magistral-small" | "devstral-medium" | "codestral" | "qwen-qwq-32b" | "grok-4-1-fast-reasoning" | "grok-4-1-fast-non-reasoning" | "grok-4-fast-reasoning" | "grok-4-fast-non-reasoning" | "grok-4" | "grok-3" | "grok-3-mini" | "grok-code-fast" | "solar-pro2";
+                    /** @description 시스템 지시사항 */
+                    instructions?: string;
+                    /** @description 아이콘 URL */
+                    icon_url?: string | null;
+                    /** @description 대화 시작 문장 목록 */
+                    conversation_starters?: string[];
+                    /**
+                     * @description 노드 출력 타입
+                     * @enum {string}
+                     */
+                    output_type?: "TEXT" | "JSON";
+                    /** @description 노드 출력 스키마 (자유 형식) */
+                    output_schema?: {
+                        [key: string]: unknown;
+                    } | null;
+                    /** @description 모델별 속성 (자유 형식) */
+                    properties?: {
+                        [key: string]: unknown;
+                    } | null;
+                    /** @description 태그 목록 */
+                    tags?: string[];
+                    /** @description 도구 목록 */
+                    tools?: ({
+                        /**
+                         * @description 도구 타입
+                         * @constant
+                         */
+                        type: "built_in";
+                        /** @description Built-in 도구 ID (예: web_search, code_interpreter, all_tools) */
+                        id: string;
+                    } | {
+                        /**
+                         * @description 도구 타입
+                         * @constant
+                         */
+                        type: "function";
+                        /** @description CustomToolNode ID */
+                        id: string;
+                        /** @description 참조 ID (있으면 참조 추적용) */
+                        ref_id?: string;
+                        /** @description 함수 이름 */
+                        name: string;
+                        /** @description 함수 설명 */
+                        description?: string;
+                        /** @description JSONSchema 입력 스키마 */
+                        schema: {
+                            [key: string]: unknown;
+                        };
+                        /** @description bridge client를 사용해서 mcp 도구를 직접 호출할때, 해당 mcp 서버 이름(옵션) */
+                        server_name?: string;
+                        /** @description 함수 본문 (동적 실행용) */
+                        function_body?: string;
+                        /** @description 응답 스키마 */
+                        response_schema?: {
+                            [key: string]: unknown;
+                        };
+                    } | {
+                        /**
+                         * @description 도구 타입
+                         * @constant
+                         */
+                        type: "mcp";
+                        /** @description McpServerNode ID */
+                        id: string;
+                        /** @description 참조 ID (있으면 참조 추적용) */
+                        ref_id?: string;
+                        /** @description MCP 서버 이름 */
+                        name: string;
+                        /** @description MCP 서버 설명 */
+                        description?: string;
+                        /** @description MCP 서버 URL (SSE 엔드포인트) */
+                        url: string;
+                        /** @description 전송 방식 (stdio, sse 등) */
+                        transport?: string;
+                        /**
+                         * @description 도구 실행 승인 요구 여부
+                         * @enum {string}
+                         */
+                        require_approval?: "always" | "never" | "auto";
+                        /** @description 허용할 도구 이름 목록 (미지정 시 전체 허용) */
+                        allowed_tools?: string[];
+                        /** @description 요청 헤더 (인증 토큰 등) */
+                        headers?: {
+                            [key: string]: string;
+                        };
+                    })[] | null;
+                    /** @description Chat Model ID */
+                    id: string;
+                    /** @description 사용자 ID */
+                    user_id: string;
+                    /** @description Space ID */
+                    space_id: string;
+                    /** @description 생성 시간 */
+                    created_at: string;
+                    /** @description 수정 시간 */
+                    updated_at: string;
+                }[];
+                /** @description 페이지 정보 */
+                page_info: {
+                    /** @description 다음 커서 */
+                    next_cursor?: string;
+                    /** @description 이전 커서 */
+                    previous_cursor?: string;
+                };
+            };
         };
         ChatModelWithRelationsResponseDto: {
             /** @constant */
@@ -4055,9 +3994,13 @@ export interface components {
                  * @description 모델명 (VisibleLLMModelValueType)
                  * @enum {string}
                  */
-                model: "gpt-5.2" | "gpt-5.2 chat" | "gpt-5.1" | "gpt-5.1 chat" | "gpt-5" | "gpt-5-mini" | "gpt-5-nano" | "gpt-4.1-mini" | "gpt-4.1" | "gpt-4o-mini" | "gpt-4o" | "gpt-o4-mini" | "gpt-o3" | "gpt-5.1-codex" | "gpt-5.1-codex-mini" | "gpt-5-codex" | "codex-mini" | "o3-deep-research" | "gemini-3-flash" | "gemini-3-pro" | "gemini-2.5-flash-lite" | "gemini-2.5-flash" | "gemini-2.0-flash" | "gemini-2.5-pro" | "claude-sonnet-4-5" | "claude-opus-4-5" | "claude-haiku-4-5" | "claude-opus-4-1" | "claude-sonnet-4-0" | "claude-opus-4-0" | "llama-4-scout-17b" | "llama-4-maverick-17b" | "mistral-small" | "mistral-medium" | "mistral-large" | "magistral-medium" | "magistral-small" | "devstral-medium" | "codestral" | "qwen-qwq-32b" | "grok-4-1-fast-reasoning" | "grok-4-1-fast-non-reasoning" | "grok-4-fast-reasoning" | "grok-4-fast-non-reasoning" | "grok-4" | "grok-3" | "grok-3-mini" | "grok-code-fast" | "solar-pro2";
+                model: "gpt-5.2" | "gpt-5.2 chat" | "gpt-5.1" | "gpt-5.1 chat" | "gpt-5" | "gpt-5-mini" | "gpt-5-nano" | "gpt-4.1-mini" | "gpt-4.1" | "gpt-4o-mini" | "gpt-4o" | "gpt-o4-mini" | "gpt-o3" | "gpt-5.2-codex" | "gpt-5.1-codex" | "gpt-5.1-codex-mini" | "gpt-5-codex" | "codex-mini" | "o3-deep-research" | "gemini-3-flash" | "gemini-3.1-pro" | "gemini-3-pro" | "gemini-2.5-flash-lite" | "gemini-2.5-flash" | "gemini-2.0-flash" | "gemini-2.5-pro" | "claude-sonnet-4-6" | "claude-sonnet-4-5" | "claude-opus-4-6" | "claude-haiku-4-5" | "llama-4-scout-17b" | "llama-4-maverick-17b" | "mistral-small" | "mistral-medium" | "mistral-large" | "magistral-medium" | "magistral-small" | "devstral-medium" | "codestral" | "qwen-qwq-32b" | "grok-4-1-fast-reasoning" | "grok-4-1-fast-non-reasoning" | "grok-4-fast-reasoning" | "grok-4-fast-non-reasoning" | "grok-4" | "grok-3" | "grok-3-mini" | "grok-code-fast" | "solar-pro2";
                 /** @description 시스템 지시사항 */
                 instructions?: string;
+                /** @description 아이콘 URL */
+                icon_url?: string | null;
+                /** @description 대화 시작 문장 목록 */
+                conversation_starters?: string[];
                 /**
                  * @description 노드 출력 타입
                  * @enum {string}
@@ -4100,6 +4043,8 @@ export interface components {
                     schema: {
                         [key: string]: unknown;
                     };
+                    /** @description bridge client를 사용해서 mcp 도구를 직접 호출할때, 해당 mcp 서버 이름(옵션) */
+                    server_name?: string;
                     /** @description 함수 본문 (동적 실행용) */
                     function_body?: string;
                     /** @description 응답 스키마 */
@@ -4135,13 +4080,17 @@ export interface components {
                     headers?: {
                         [key: string]: string;
                     };
-                })[];
+                })[] | null;
                 /** @description Chat Model ID */
                 id: string;
                 /** @description 사용자 ID */
                 user_id: string;
                 /** @description Space ID */
                 space_id: string;
+                /** @description 생성 시간 */
+                created_at: string;
+                /** @description 수정 시간 */
+                updated_at: string;
                 /** @description 연결된 RAG Storage */
                 rag_storage_nodes?: {
                     id: string;
@@ -4158,9 +4107,13 @@ export interface components {
              * @description 모델명 (VisibleLLMModelValueType)
              * @enum {string}
              */
-            model: "gpt-5.2" | "gpt-5.2 chat" | "gpt-5.1" | "gpt-5.1 chat" | "gpt-5" | "gpt-5-mini" | "gpt-5-nano" | "gpt-4.1-mini" | "gpt-4.1" | "gpt-4o-mini" | "gpt-4o" | "gpt-o4-mini" | "gpt-o3" | "gpt-5.1-codex" | "gpt-5.1-codex-mini" | "gpt-5-codex" | "codex-mini" | "o3-deep-research" | "gemini-3-flash" | "gemini-3-pro" | "gemini-2.5-flash-lite" | "gemini-2.5-flash" | "gemini-2.0-flash" | "gemini-2.5-pro" | "claude-sonnet-4-5" | "claude-opus-4-5" | "claude-haiku-4-5" | "claude-opus-4-1" | "claude-sonnet-4-0" | "claude-opus-4-0" | "llama-4-scout-17b" | "llama-4-maverick-17b" | "mistral-small" | "mistral-medium" | "mistral-large" | "magistral-medium" | "magistral-small" | "devstral-medium" | "codestral" | "qwen-qwq-32b" | "grok-4-1-fast-reasoning" | "grok-4-1-fast-non-reasoning" | "grok-4-fast-reasoning" | "grok-4-fast-non-reasoning" | "grok-4" | "grok-3" | "grok-3-mini" | "grok-code-fast" | "solar-pro2";
+            model: "gpt-5.2" | "gpt-5.2 chat" | "gpt-5.1" | "gpt-5.1 chat" | "gpt-5" | "gpt-5-mini" | "gpt-5-nano" | "gpt-4.1-mini" | "gpt-4.1" | "gpt-4o-mini" | "gpt-4o" | "gpt-o4-mini" | "gpt-o3" | "gpt-5.2-codex" | "gpt-5.1-codex" | "gpt-5.1-codex-mini" | "gpt-5-codex" | "codex-mini" | "o3-deep-research" | "gemini-3-flash" | "gemini-3.1-pro" | "gemini-3-pro" | "gemini-2.5-flash-lite" | "gemini-2.5-flash" | "gemini-2.0-flash" | "gemini-2.5-pro" | "claude-sonnet-4-6" | "claude-sonnet-4-5" | "claude-opus-4-6" | "claude-haiku-4-5" | "llama-4-scout-17b" | "llama-4-maverick-17b" | "mistral-small" | "mistral-medium" | "mistral-large" | "magistral-medium" | "magistral-small" | "devstral-medium" | "codestral" | "qwen-qwq-32b" | "grok-4-1-fast-reasoning" | "grok-4-1-fast-non-reasoning" | "grok-4-fast-reasoning" | "grok-4-fast-non-reasoning" | "grok-4" | "grok-3" | "grok-3-mini" | "grok-code-fast" | "solar-pro2";
             /** @description 시스템 지시사항 */
             instructions?: string;
+            /** @description 아이콘 URL */
+            icon_url?: string | null;
+            /** @description 대화 시작 문장 목록 */
+            conversation_starters?: string[];
             /**
              * @description 노드 출력 타입
              * @enum {string}
@@ -4203,6 +4156,8 @@ export interface components {
                 schema: {
                     [key: string]: unknown;
                 };
+                /** @description bridge client를 사용해서 mcp 도구를 직접 호출할때, 해당 mcp 서버 이름(옵션) */
+                server_name?: string;
                 /** @description 함수 본문 (동적 실행용) */
                 function_body?: string;
                 /** @description 응답 스키마 */
@@ -4238,7 +4193,7 @@ export interface components {
                 headers?: {
                     [key: string]: string;
                 };
-            })[];
+            })[] | null;
             /** @description RAG Storage ID 목록 */
             rag_storage_ids?: string[];
         };
@@ -4255,9 +4210,13 @@ export interface components {
                  * @description 모델명 (VisibleLLMModelValueType)
                  * @enum {string}
                  */
-                model: "gpt-5.2" | "gpt-5.2 chat" | "gpt-5.1" | "gpt-5.1 chat" | "gpt-5" | "gpt-5-mini" | "gpt-5-nano" | "gpt-4.1-mini" | "gpt-4.1" | "gpt-4o-mini" | "gpt-4o" | "gpt-o4-mini" | "gpt-o3" | "gpt-5.1-codex" | "gpt-5.1-codex-mini" | "gpt-5-codex" | "codex-mini" | "o3-deep-research" | "gemini-3-flash" | "gemini-3-pro" | "gemini-2.5-flash-lite" | "gemini-2.5-flash" | "gemini-2.0-flash" | "gemini-2.5-pro" | "claude-sonnet-4-5" | "claude-opus-4-5" | "claude-haiku-4-5" | "claude-opus-4-1" | "claude-sonnet-4-0" | "claude-opus-4-0" | "llama-4-scout-17b" | "llama-4-maverick-17b" | "mistral-small" | "mistral-medium" | "mistral-large" | "magistral-medium" | "magistral-small" | "devstral-medium" | "codestral" | "qwen-qwq-32b" | "grok-4-1-fast-reasoning" | "grok-4-1-fast-non-reasoning" | "grok-4-fast-reasoning" | "grok-4-fast-non-reasoning" | "grok-4" | "grok-3" | "grok-3-mini" | "grok-code-fast" | "solar-pro2";
+                model: "gpt-5.2" | "gpt-5.2 chat" | "gpt-5.1" | "gpt-5.1 chat" | "gpt-5" | "gpt-5-mini" | "gpt-5-nano" | "gpt-4.1-mini" | "gpt-4.1" | "gpt-4o-mini" | "gpt-4o" | "gpt-o4-mini" | "gpt-o3" | "gpt-5.2-codex" | "gpt-5.1-codex" | "gpt-5.1-codex-mini" | "gpt-5-codex" | "codex-mini" | "o3-deep-research" | "gemini-3-flash" | "gemini-3.1-pro" | "gemini-3-pro" | "gemini-2.5-flash-lite" | "gemini-2.5-flash" | "gemini-2.0-flash" | "gemini-2.5-pro" | "claude-sonnet-4-6" | "claude-sonnet-4-5" | "claude-opus-4-6" | "claude-haiku-4-5" | "llama-4-scout-17b" | "llama-4-maverick-17b" | "mistral-small" | "mistral-medium" | "mistral-large" | "magistral-medium" | "magistral-small" | "devstral-medium" | "codestral" | "qwen-qwq-32b" | "grok-4-1-fast-reasoning" | "grok-4-1-fast-non-reasoning" | "grok-4-fast-reasoning" | "grok-4-fast-non-reasoning" | "grok-4" | "grok-3" | "grok-3-mini" | "grok-code-fast" | "solar-pro2";
                 /** @description 시스템 지시사항 */
                 instructions?: string;
+                /** @description 아이콘 URL */
+                icon_url?: string | null;
+                /** @description 대화 시작 문장 목록 */
+                conversation_starters?: string[];
                 /**
                  * @description 노드 출력 타입
                  * @enum {string}
@@ -4300,6 +4259,8 @@ export interface components {
                     schema: {
                         [key: string]: unknown;
                     };
+                    /** @description bridge client를 사용해서 mcp 도구를 직접 호출할때, 해당 mcp 서버 이름(옵션) */
+                    server_name?: string;
                     /** @description 함수 본문 (동적 실행용) */
                     function_body?: string;
                     /** @description 응답 스키마 */
@@ -4335,7 +4296,7 @@ export interface components {
                     headers?: {
                         [key: string]: string;
                     };
-                })[];
+                })[] | null;
                 /** @description RAG Storage ID 목록 */
                 rag_storage_ids?: string[];
                 /** @description Chat Model ID */
@@ -4359,9 +4320,13 @@ export interface components {
              * @description 모델명 (VisibleLLMModelValueType)
              * @enum {string}
              */
-            model?: "gpt-5.2" | "gpt-5.2 chat" | "gpt-5.1" | "gpt-5.1 chat" | "gpt-5" | "gpt-5-mini" | "gpt-5-nano" | "gpt-4.1-mini" | "gpt-4.1" | "gpt-4o-mini" | "gpt-4o" | "gpt-o4-mini" | "gpt-o3" | "gpt-5.1-codex" | "gpt-5.1-codex-mini" | "gpt-5-codex" | "codex-mini" | "o3-deep-research" | "gemini-3-flash" | "gemini-3-pro" | "gemini-2.5-flash-lite" | "gemini-2.5-flash" | "gemini-2.0-flash" | "gemini-2.5-pro" | "claude-sonnet-4-5" | "claude-opus-4-5" | "claude-haiku-4-5" | "claude-opus-4-1" | "claude-sonnet-4-0" | "claude-opus-4-0" | "llama-4-scout-17b" | "llama-4-maverick-17b" | "mistral-small" | "mistral-medium" | "mistral-large" | "magistral-medium" | "magistral-small" | "devstral-medium" | "codestral" | "qwen-qwq-32b" | "grok-4-1-fast-reasoning" | "grok-4-1-fast-non-reasoning" | "grok-4-fast-reasoning" | "grok-4-fast-non-reasoning" | "grok-4" | "grok-3" | "grok-3-mini" | "grok-code-fast" | "solar-pro2";
+            model?: "gpt-5.2" | "gpt-5.2 chat" | "gpt-5.1" | "gpt-5.1 chat" | "gpt-5" | "gpt-5-mini" | "gpt-5-nano" | "gpt-4.1-mini" | "gpt-4.1" | "gpt-4o-mini" | "gpt-4o" | "gpt-o4-mini" | "gpt-o3" | "gpt-5.2-codex" | "gpt-5.1-codex" | "gpt-5.1-codex-mini" | "gpt-5-codex" | "codex-mini" | "o3-deep-research" | "gemini-3-flash" | "gemini-3.1-pro" | "gemini-3-pro" | "gemini-2.5-flash-lite" | "gemini-2.5-flash" | "gemini-2.0-flash" | "gemini-2.5-pro" | "claude-sonnet-4-6" | "claude-sonnet-4-5" | "claude-opus-4-6" | "claude-haiku-4-5" | "llama-4-scout-17b" | "llama-4-maverick-17b" | "mistral-small" | "mistral-medium" | "mistral-large" | "magistral-medium" | "magistral-small" | "devstral-medium" | "codestral" | "qwen-qwq-32b" | "grok-4-1-fast-reasoning" | "grok-4-1-fast-non-reasoning" | "grok-4-fast-reasoning" | "grok-4-fast-non-reasoning" | "grok-4" | "grok-3" | "grok-3-mini" | "grok-code-fast" | "solar-pro2";
             /** @description 시스템 지시사항 */
             instructions?: string;
+            /** @description 아이콘 URL */
+            icon_url?: string | null;
+            /** @description 대화 시작 문장 목록 */
+            conversation_starters?: string[];
             /**
              * @description 노드 출력 타입
              * @enum {string}
@@ -4404,6 +4369,8 @@ export interface components {
                 schema: {
                     [key: string]: unknown;
                 };
+                /** @description bridge client를 사용해서 mcp 도구를 직접 호출할때, 해당 mcp 서버 이름(옵션) */
+                server_name?: string;
                 /** @description 함수 본문 (동적 실행용) */
                 function_body?: string;
                 /** @description 응답 스키마 */
@@ -4439,21 +4406,9 @@ export interface components {
                 headers?: {
                     [key: string]: string;
                 };
-            })[];
+            })[] | null;
             /** @description RAG Storage ID 목록 */
             rag_storage_ids?: string[];
-        };
-        RunJavascriptCodeDto: {
-            /** @description 식별자 */
-            identifier: string;
-            /** @description 코드 */
-            code: string;
-            /** @description 파라미터 */
-            params?: {
-                [key: string]: unknown;
-            };
-            /** @description 사용량 차감 건너뛰기 */
-            skipDeductCredits?: boolean;
         };
         AutoTransformerRequestDto: {
             /** @description 사용자의 변환 요청 설명 */
@@ -4660,7 +4615,7 @@ export interface components {
                 };
             };
             /** @enum {string} */
-            model: "gpt-5.2" | "gpt-5.2 chat" | "gpt-5.2-pro" | "gpt-5.1" | "gpt-5.1 chat" | "gpt-5" | "gpt-5-mini" | "gpt-5-nano" | "gpt-5-pro" | "gpt-4.1-mini" | "gpt-4.1" | "gpt-4.1-nano" | "gpt-4o-mini" | "gpt-4o" | "gpt-o4-mini" | "gpt-o3" | "gpt-5.1-codex" | "gpt-5.1-codex-mini" | "gpt-5-codex" | "codex-mini" | "o3-deep-research" | "o4-mini-deep-research" | "gpt-4o-mini-search" | "gpt-4o-search" | "text-embedding-3-large" | "gpt-4o-mini-realtime" | "gpt-image-1.5" | "gpt-image-1" | "gpt-image-1-mini" | "dall-e-3" | "whisper" | "gpt-4o-mini-transcribe" | "sora-2" | "sora-2-pro" | "gemini-3-flash" | "gemini-3-pro" | "gemini-2.5-flash-lite" | "gemini-2.0-flash-lite" | "gemini-2.5-flash" | "gemini-2.0-flash" | "gemini-2.5-pro" | "veo-3.1" | "veo-3.1-fast" | "veo-3" | "veo-3-fast" | "veo-2" | "gemini-3-pro-image" | "gemini-2.5-flash-image" | "imagen-4" | "imagen-4-fast" | "imagen-4-ultra" | "imagen-3" | "sonar-pro" | "sonar" | "sonar-reasoning" | "sonar-reasoning-pro" | "sonar-deep-research" | "claude-sonnet-4-5" | "claude-opus-4-5" | "claude-haiku-4-5" | "claude-opus-4-1" | "claude-sonnet-4-0" | "claude-opus-4-0" | "claude-3-7-sonnet" | "claude-3-5-sonnet" | "claude-3-5-haiku" | "llama-4-scout-17b" | "llama-4-maverick-17b" | "mistral-small" | "mistral-medium" | "mistral-large" | "magistral-medium" | "magistral-small" | "devstral-medium" | "codestral" | "qwen-qwq-32b" | "deepseek-r1-distill-llama-70b" | "gen3a_turbo" | "gen4_turbo" | "gen4_image" | "gen4_image_turbo" | "gladia-whisper" | "2025-05-14-multilingual" | "grok-4-1-fast-reasoning" | "grok-4-1-fast-non-reasoning" | "grok-4-fast-reasoning" | "grok-4-fast-non-reasoning" | "grok-4" | "grok-3" | "grok-3-mini" | "grok-3-fast" | "grok-3-mini-fast" | "grok-code-fast" | "solar-pro2" | "sotak" | "tavily" | "flux-2-pro" | "flux-1-dev" | "flux-1-kontext-max" | "flux-1-kontext-pro" | "flux-pro-1.1" | "flux-pro-1.1-ultra" | "kling-v2-1-standard" | "kling-v2-1-pro" | "kling-v2-1-master";
+            model: "gpt-5.2" | "gpt-5.2 chat" | "gpt-5.2-pro" | "gpt-5.1" | "gpt-5.1 chat" | "gpt-5" | "gpt-5-mini" | "gpt-5-nano" | "gpt-5-pro" | "gpt-4.1-mini" | "gpt-4.1" | "gpt-4.1-nano" | "gpt-4o-mini" | "gpt-4o" | "gpt-o4-mini" | "gpt-o3" | "gpt-5.2-codex" | "gpt-5.1-codex" | "gpt-5.1-codex-mini" | "gpt-5-codex" | "codex-mini" | "o3-deep-research" | "o4-mini-deep-research" | "gpt-4o-mini-search" | "gpt-4o-search" | "text-embedding-3-large" | "gpt-4o-mini-realtime" | "gpt-image-1.5" | "gpt-image-1" | "gpt-image-1-mini" | "dall-e-2" | "dall-e-3" | "whisper" | "gpt-4o-mini-transcribe" | "sora-2" | "sora-2-pro" | "gemini-3-flash" | "gemini-3.1-pro" | "gemini-3-pro" | "gemini-2.5-flash-lite" | "gemini-2.0-flash-lite" | "gemini-2.5-flash" | "gemini-2.0-flash" | "gemini-2.5-pro" | "veo-3.1" | "veo-3.1-fast" | "veo-3" | "veo-3-fast" | "veo-2" | "gemini-3-pro-image" | "gemini-2.5-flash-image" | "imagen-4" | "imagen-4-fast" | "imagen-4-ultra" | "imagen-3" | "gemini-2.5-flash-tts" | "sonar-pro" | "sonar" | "sonar-reasoning-pro" | "sonar-deep-research" | "claude-sonnet-4-6" | "claude-sonnet-4-5" | "claude-opus-4-6" | "claude-opus-4-5" | "claude-haiku-4-5" | "claude-opus-4-1" | "claude-sonnet-4-0" | "claude-opus-4-0" | "claude-3-7-sonnet" | "claude-3-5-sonnet" | "claude-3-5-haiku" | "llama-4-scout-17b" | "llama-4-maverick-17b" | "mistral-small" | "mistral-medium" | "mistral-large" | "magistral-medium" | "magistral-small" | "devstral-medium" | "codestral" | "qwen-qwq-32b" | "deepseek-r1-distill-llama-70b" | "gen3a_turbo" | "gen4_turbo" | "gen4_image" | "gen4_image_turbo" | "gladia-whisper" | "2025-05-14-multilingual" | "grok-4-1-fast-reasoning" | "grok-4-1-fast-non-reasoning" | "grok-4-fast-reasoning" | "grok-4-fast-non-reasoning" | "grok-4" | "grok-3" | "grok-3-mini" | "grok-3-fast" | "grok-3-mini-fast" | "grok-code-fast" | "grok-imagine-image-pro" | "grok-imagine-image" | "grok-imagine-video" | "solar-pro2" | "sotak" | "tavily" | "flux-2-pro" | "flux-1-dev" | "flux-1-kontext-max" | "flux-1-kontext-pro" | "flux-pro-1.1" | "flux-pro-1.1-ultra" | "kling-v2-1-standard" | "kling-v2-1-pro" | "kling-v2-1-master";
             /** @default null */
             extra_price: number | null;
         };
@@ -5071,9 +5026,19 @@ export interface components {
              * @description 모델명 (VisibleLLMModelValueType)
              * @enum {string}
              */
-            model: "gpt-5.2" | "gpt-5.2 chat" | "gpt-5.1" | "gpt-5.1 chat" | "gpt-5" | "gpt-5-mini" | "gpt-5-nano" | "gpt-4.1-mini" | "gpt-4.1" | "gpt-4o-mini" | "gpt-4o" | "gpt-o4-mini" | "gpt-o3" | "gpt-5.1-codex" | "gpt-5.1-codex-mini" | "gpt-5-codex" | "codex-mini" | "o3-deep-research" | "gemini-3-flash" | "gemini-3-pro" | "gemini-2.5-flash-lite" | "gemini-2.5-flash" | "gemini-2.0-flash" | "gemini-2.5-pro" | "claude-sonnet-4-5" | "claude-opus-4-5" | "claude-haiku-4-5" | "claude-opus-4-1" | "claude-sonnet-4-0" | "claude-opus-4-0" | "llama-4-scout-17b" | "llama-4-maverick-17b" | "mistral-small" | "mistral-medium" | "mistral-large" | "magistral-medium" | "magistral-small" | "devstral-medium" | "codestral" | "qwen-qwq-32b" | "grok-4-1-fast-reasoning" | "grok-4-1-fast-non-reasoning" | "grok-4-fast-reasoning" | "grok-4-fast-non-reasoning" | "grok-4" | "grok-3" | "grok-3-mini" | "grok-code-fast" | "solar-pro2";
+            model: "gpt-5.2" | "gpt-5.2 chat" | "gpt-5.1" | "gpt-5.1 chat" | "gpt-5" | "gpt-5-mini" | "gpt-5-nano" | "gpt-4.1-mini" | "gpt-4.1" | "gpt-4o-mini" | "gpt-4o" | "gpt-o4-mini" | "gpt-o3" | "gpt-5.2-codex" | "gpt-5.1-codex" | "gpt-5.1-codex-mini" | "gpt-5-codex" | "codex-mini" | "o3-deep-research" | "gemini-3-flash" | "gemini-3.1-pro" | "gemini-3-pro" | "gemini-2.5-flash-lite" | "gemini-2.5-flash" | "gemini-2.0-flash" | "gemini-2.5-pro" | "claude-sonnet-4-6" | "claude-sonnet-4-5" | "claude-opus-4-6" | "claude-haiku-4-5" | "llama-4-scout-17b" | "llama-4-maverick-17b" | "mistral-small" | "mistral-medium" | "mistral-large" | "magistral-medium" | "magistral-small" | "devstral-medium" | "codestral" | "qwen-qwq-32b" | "grok-4-1-fast-reasoning" | "grok-4-1-fast-non-reasoning" | "grok-4-fast-reasoning" | "grok-4-fast-non-reasoning" | "grok-4" | "grok-3" | "grok-3-mini" | "grok-code-fast" | "solar-pro2";
             /** @description 시스템 지시사항 */
             instructions?: string;
+            chat_profile?: {
+                /** @description 닉네임 */
+                nickname?: string;
+                /** @description 직업 */
+                job?: string;
+                /** @description 추가 정보 */
+                additionalInfo?: string;
+                /** @description 답변 스타일 */
+                answerStyle?: string;
+            };
             /**
              * @description 노드 출력 타입
              * @enum {string}
@@ -5109,6 +5074,8 @@ export interface components {
                 schema?: {
                     [key: string]: unknown;
                 };
+                /** @description bridge client를 사용해서 mcp 도구를 직접 호출할때, 해당 mcp 서버 이름(옵션) */
+                server_name?: string;
             } | {
                 /** @constant */
                 type: "mcp";
@@ -5134,13 +5101,15 @@ export interface components {
                     [key: string]: string;
                 };
             })[];
+            /** @description RAG Storage ID 목록 (무조건 우선 검색해서 들어가야 할 경우에만 사용) */
+            pre_retrieval_ids?: string[];
             /** @description RAG Storage ID 목록 */
             rag_storage_ids?: string[];
             /**
              * @description 채팅 타입, 로깅 및 비즈니스 로직 처리에 사용
              * @enum {string}
              */
-            chat_type?: "NORMAL" | "LABS_IMAGE" | "RAG" | "LABS_YOUTUBE_SUMMARIZE" | "LABS_REALTIME" | "LABS_TRANSCRIBER" | "LABS_PERPLEXITY" | "PROMPT" | "CHATBOT" | "TOOL" | "LABS_STUDIO" | "LABS_AI_DETECTOR" | "LABS_CANVAS" | "LABS_NANO_BANANA" | "DYNAMIC_CHAT" | "CUSTOM_CHAT_MODEL";
+            chat_type?: "NORMAL" | "LABS_IMAGE" | "RAG" | "LABS_YOUTUBE_SUMMARIZE" | "LABS_REALTIME" | "LABS_TRANSCRIBER" | "LABS_PERPLEXITY" | "PROMPT" | "CHATBOT" | "TOOL" | "LABS_STUDIO" | "LABS_AI_DETECTOR" | "LABS_CANVAS" | "LABS_NANO_BANANA" | "DYNAMIC_CHAT" | "CUSTOM_CHAT_MODEL" | "API_CHAT";
             /** @description 사용자 메시지 ID, 툴 호출 시 사용자 메시지 ID 전달(선택) */
             user_message_id?: string | null;
             /** @description 특정 checkpoint ID (선택, 미지정 시 최신 checkpoint 사용) */
@@ -5254,6 +5223,42 @@ export interface components {
                 };
             }[];
         };
+        ToolTtsResponseOutputDto: {
+            /** @constant */
+            success: true;
+            status: number;
+            data: {
+                /** @description 성공 여부 */
+                success: boolean;
+                /** @description 출력 */
+                output: string;
+                /** @description 가격 */
+                price: number;
+                /** @description 이름 */
+                name?: string;
+                /** @description 설명 */
+                description?: string;
+                /** @description 소스 */
+                source?: {
+                    [key: string]: unknown;
+                };
+                /** @description 메타데이터 */
+                metadata?: {
+                    /**
+                     * @description 툴 처리 상태
+                     * @enum {string}
+                     */
+                    status: "PENDING" | "PROCESSING" | "SUCCEEDED" | "FAILED";
+                    /** @description task_id */
+                    task_id?: string;
+                    /**
+                     * @description 툴 출력 타입
+                     * @enum {string}
+                     */
+                    type: "IMAGE_URL" | "VIDEO_URL" | "PLAIN_TEXT";
+                };
+            };
+        };
         SdkAuthResponseDto: {
             /** @constant */
             success: true;
@@ -5270,7 +5275,7 @@ export interface components {
             data: {
                 models: {
                     /** @enum {string} */
-                    value: "gpt-5.2" | "gpt-5.2 chat" | "gpt-5.2-pro" | "gpt-5.1" | "gpt-5.1 chat" | "gpt-5" | "gpt-5-mini" | "gpt-5-nano" | "gpt-5-pro" | "gpt-4.1-mini" | "gpt-4.1" | "gpt-4.1-nano" | "gpt-4o-mini" | "gpt-4o" | "gpt-o4-mini" | "gpt-o3" | "gpt-5.1-codex" | "gpt-5.1-codex-mini" | "gpt-5-codex" | "codex-mini" | "o3-deep-research" | "o4-mini-deep-research" | "gpt-4o-mini-search" | "gpt-4o-search" | "text-embedding-3-large" | "gpt-4o-mini-realtime" | "gpt-image-1.5" | "gpt-image-1" | "gpt-image-1-mini" | "dall-e-3" | "whisper" | "gpt-4o-mini-transcribe" | "sora-2" | "sora-2-pro" | "gemini-3-flash" | "gemini-3-pro" | "gemini-2.5-flash-lite" | "gemini-2.0-flash-lite" | "gemini-2.5-flash" | "gemini-2.0-flash" | "gemini-2.5-pro" | "veo-3.1" | "veo-3.1-fast" | "veo-3" | "veo-3-fast" | "veo-2" | "gemini-3-pro-image" | "gemini-2.5-flash-image" | "imagen-4" | "imagen-4-fast" | "imagen-4-ultra" | "imagen-3" | "sonar-pro" | "sonar" | "sonar-reasoning" | "sonar-reasoning-pro" | "sonar-deep-research" | "claude-sonnet-4-5" | "claude-opus-4-5" | "claude-haiku-4-5" | "claude-opus-4-1" | "claude-sonnet-4-0" | "claude-opus-4-0" | "claude-3-7-sonnet" | "claude-3-5-sonnet" | "claude-3-5-haiku" | "llama-4-scout-17b" | "llama-4-maverick-17b" | "mistral-small" | "mistral-medium" | "mistral-large" | "magistral-medium" | "magistral-small" | "devstral-medium" | "codestral" | "qwen-qwq-32b" | "deepseek-r1-distill-llama-70b" | "gen3a_turbo" | "gen4_turbo" | "gen4_image" | "gen4_image_turbo" | "gladia-whisper" | "2025-05-14-multilingual" | "grok-4-1-fast-reasoning" | "grok-4-1-fast-non-reasoning" | "grok-4-fast-reasoning" | "grok-4-fast-non-reasoning" | "grok-4" | "grok-3" | "grok-3-mini" | "grok-3-fast" | "grok-3-mini-fast" | "grok-code-fast" | "solar-pro2" | "sotak" | "tavily" | "flux-2-pro" | "flux-1-dev" | "flux-1-kontext-max" | "flux-1-kontext-pro" | "flux-pro-1.1" | "flux-pro-1.1-ultra" | "kling-v2-1-standard" | "kling-v2-1-pro" | "kling-v2-1-master";
+                    value: "gpt-5.2" | "gpt-5.2 chat" | "gpt-5.2-pro" | "gpt-5.1" | "gpt-5.1 chat" | "gpt-5" | "gpt-5-mini" | "gpt-5-nano" | "gpt-5-pro" | "gpt-4.1-mini" | "gpt-4.1" | "gpt-4.1-nano" | "gpt-4o-mini" | "gpt-4o" | "gpt-o4-mini" | "gpt-o3" | "gpt-5.2-codex" | "gpt-5.1-codex" | "gpt-5.1-codex-mini" | "gpt-5-codex" | "codex-mini" | "o3-deep-research" | "o4-mini-deep-research" | "gpt-4o-mini-search" | "gpt-4o-search" | "text-embedding-3-large" | "gpt-4o-mini-realtime" | "gpt-image-1.5" | "gpt-image-1" | "gpt-image-1-mini" | "dall-e-2" | "dall-e-3" | "whisper" | "gpt-4o-mini-transcribe" | "sora-2" | "sora-2-pro" | "gemini-3-flash" | "gemini-3.1-pro" | "gemini-3-pro" | "gemini-2.5-flash-lite" | "gemini-2.0-flash-lite" | "gemini-2.5-flash" | "gemini-2.0-flash" | "gemini-2.5-pro" | "veo-3.1" | "veo-3.1-fast" | "veo-3" | "veo-3-fast" | "veo-2" | "gemini-3-pro-image" | "gemini-2.5-flash-image" | "imagen-4" | "imagen-4-fast" | "imagen-4-ultra" | "imagen-3" | "gemini-2.5-flash-tts" | "sonar-pro" | "sonar" | "sonar-reasoning-pro" | "sonar-deep-research" | "claude-sonnet-4-6" | "claude-sonnet-4-5" | "claude-opus-4-6" | "claude-opus-4-5" | "claude-haiku-4-5" | "claude-opus-4-1" | "claude-sonnet-4-0" | "claude-opus-4-0" | "claude-3-7-sonnet" | "claude-3-5-sonnet" | "claude-3-5-haiku" | "llama-4-scout-17b" | "llama-4-maverick-17b" | "mistral-small" | "mistral-medium" | "mistral-large" | "magistral-medium" | "magistral-small" | "devstral-medium" | "codestral" | "qwen-qwq-32b" | "deepseek-r1-distill-llama-70b" | "gen3a_turbo" | "gen4_turbo" | "gen4_image" | "gen4_image_turbo" | "gladia-whisper" | "2025-05-14-multilingual" | "grok-4-1-fast-reasoning" | "grok-4-1-fast-non-reasoning" | "grok-4-fast-reasoning" | "grok-4-fast-non-reasoning" | "grok-4" | "grok-3" | "grok-3-mini" | "grok-3-fast" | "grok-3-mini-fast" | "grok-code-fast" | "grok-imagine-image-pro" | "grok-imagine-image" | "grok-imagine-video" | "solar-pro2" | "sotak" | "tavily" | "flux-2-pro" | "flux-1-dev" | "flux-1-kontext-max" | "flux-1-kontext-pro" | "flux-pro-1.1" | "flux-pro-1.1-ultra" | "kling-v2-1-standard" | "kling-v2-1-pro" | "kling-v2-1-master";
                     label: string;
                 }[];
             }[];
@@ -5408,95 +5413,221 @@ export interface components {
                 key: string;
             };
         };
-        ChatCompletionRequestDto: {
-            /** @description Model identifier (e.g., gpt-4, claude-3-5-sonnet-20241022) */
-            model: string;
-            /** @description Conversation messages */
-            messages: {
+        CreatePodcastMinimalRequestDto: {
+            /** @description Podcast title */
+            title: string;
+            /**
+             * @description Host voice (optional)
+             * @enum {string}
+             */
+            hostVoice?: "Kore" | "Zephyr" | "Leda" | "Aoede" | "Callirrhoe" | "Autonoe" | "Despina" | "Erinome" | "Puck" | "Charon" | "Orus" | "Enceladus" | "Iapetus" | "Umbriel" | "Algenib" | "Rasalgethi";
+            /**
+             * @description Guest voice (optional)
+             * @enum {string}
+             */
+            guestVoice?: "Kore" | "Zephyr" | "Leda" | "Aoede" | "Callirrhoe" | "Autonoe" | "Despina" | "Erinome" | "Puck" | "Charon" | "Orus" | "Enceladus" | "Iapetus" | "Umbriel" | "Algenib" | "Rasalgethi";
+            /** @description Optional reference documents for script generation */
+            referenceDocuments?: string[];
+            /**
+             * @description Whether to perform web search before generating podcast (default: true)
+             * @default true
+             */
+            useWebSearch: boolean;
+        };
+        CreatePodcastResponseDto: {
+            /** @constant */
+            success: true;
+            status: number;
+            data: {
+                /** @description Generated podcast script */
+                script: string;
+                config: {
+                    title: string;
+                    hostName: string;
+                    /** @enum {string} */
+                    hostVoice: "Kore" | "Zephyr" | "Leda" | "Aoede" | "Callirrhoe" | "Autonoe" | "Despina" | "Erinome" | "Puck" | "Charon" | "Orus" | "Enceladus" | "Iapetus" | "Umbriel" | "Algenib" | "Rasalgethi";
+                    guestName: string;
+                    /** @enum {string} */
+                    guestVoice: "Kore" | "Zephyr" | "Leda" | "Aoede" | "Callirrhoe" | "Autonoe" | "Despina" | "Erinome" | "Puck" | "Charon" | "Orus" | "Enceladus" | "Iapetus" | "Umbriel" | "Algenib" | "Rasalgethi";
+                    keyPoints: string[];
+                };
+                /** @description URL to download audio file */
+                audioUrl?: string;
+            };
+        };
+        GenerateScriptResponseDto: {
+            /** @constant */
+            success: true;
+            status: number;
+            data: {
+                /** @description Generated podcast script */
+                script: string;
+                config: {
+                    title: string;
+                    hostName: string;
+                    /** @enum {string} */
+                    hostVoice: "Kore" | "Zephyr" | "Leda" | "Aoede" | "Callirrhoe" | "Autonoe" | "Despina" | "Erinome" | "Puck" | "Charon" | "Orus" | "Enceladus" | "Iapetus" | "Umbriel" | "Algenib" | "Rasalgethi";
+                    guestName: string;
+                    /** @enum {string} */
+                    guestVoice: "Kore" | "Zephyr" | "Leda" | "Aoede" | "Callirrhoe" | "Autonoe" | "Despina" | "Erinome" | "Puck" | "Charon" | "Orus" | "Enceladus" | "Iapetus" | "Umbriel" | "Algenib" | "Rasalgethi";
+                    keyPoints: string[];
+                };
+            };
+        };
+        GenerateDailyNewsRequestDto: {
+            /** @description 뉴스 카테고리 목록 (기본: 전체 카테고리) */
+            categories?: ("BUSINESS" | "SCIENCE_TECHNOLOGY" | "SPORTS" | "ENTERTAINMENT" | "HEALTH")[];
+            /**
+             * @description 카테고리당 뉴스 개수 (기본: 5개)
+             * @default 5
+             */
+            limitPerCategory: number;
+        };
+        GenerateDailyNewsResponseDto: {
+            /** @constant */
+            success: true;
+            status: number;
+            data: {
+                /** @description 생성된 뉴스 개수 */
+                generated: number;
+                /** @description 중복된 뉴스 개수 */
+                duplicates: number;
+            };
+        };
+        GetDailyNewsListResponseDto: {
+            /** @constant */
+            success: true;
+            status: number;
+            data: {
+                items: {
+                    /** @description 뉴스 ID */
+                    id: string;
+                    /** @description 뉴스 제목 */
+                    title: string;
+                    /** @description 뉴스 URL */
+                    url: string;
+                    /** @description 뉴스 요약 */
+                    snippet: string;
+                    /** @description 이미지 URL */
+                    imageUrl: string | null;
+                    /** @description 파비콘 URL */
+                    favicon: string | null;
+                    /** @description 검색 날짜 (ISO 8601) */
+                    searchDate: string;
+                    /** @description 뉴스 발행 날짜 (ISO 8601) */
+                    newsDate: string;
+                    /** @description 사이트명 */
+                    sitename: string | null;
+                    /** @description 상세 요약 */
+                    summary: string | null;
+                    /**
+                     * @description 카테고리
+                     * @enum {string}
+                     */
+                    category: "BUSINESS" | "SCIENCE_TECHNOLOGY" | "SPORTS" | "ENTERTAINMENT" | "HEALTH";
+                    /** @description 팟캐스트 오디오 URL */
+                    podcastUrl: string | null;
+                    /** @description 생성 날짜 (ISO 8601) */
+                    createdAt: string;
+                    /** @description 수정 날짜 (ISO 8601) */
+                    updatedAt: string;
+                }[];
+                /** @description 전체 항목 수 */
+                total: number;
+                /** @description 현재 페이지 */
+                page: number;
+                /** @description 페이지당 항목 수 */
+                limit: number;
+                /** @description 전체 페이지 수 */
+                totalPages: number;
+            };
+        };
+        GetDailyNewsDetailResponseDto: {
+            /** @constant */
+            success: true;
+            status: number;
+            data: {
+                /** @description 뉴스 ID */
+                id: string;
+                /** @description 뉴스 제목 */
+                title: string;
+                /** @description 뉴스 URL */
+                url: string;
+                /** @description 뉴스 요약 */
+                snippet: string;
+                /** @description 이미지 URL */
+                imageUrl: string | null;
+                /** @description 파비콘 URL */
+                favicon: string | null;
+                /** @description 검색 날짜 (ISO 8601) */
+                searchDate: string;
+                /** @description 뉴스 발행 날짜 (ISO 8601) */
+                newsDate: string;
+                /** @description 사이트명 */
+                sitename: string | null;
+                /** @description 상세 요약 */
+                summary: string | null;
                 /**
-                 * @description Message role
+                 * @description 카테고리
                  * @enum {string}
                  */
-                role: "system" | "user" | "assistant" | "tool";
-                /** @description Message content */
-                content?: (string | ({
-                    /** @constant */
-                    type: "text";
-                    text: string;
-                } | {
-                    /** @constant */
-                    type: "image_url";
-                    image_url: {
-                        url: string;
-                        /** @enum {string} */
-                        detail?: "auto" | "low" | "high";
-                    };
-                })[]) | null;
-                /** @description Participant name */
-                name?: string;
-                /** @description Tool calls */
-                tool_calls?: {
-                    id: string;
-                    /** @constant */
-                    type: "function";
-                    function: {
-                        name: string;
-                        arguments: string;
-                    };
-                }[];
-                /** @description Tool call ID for tool role */
-                tool_call_id?: string;
+                category: "BUSINESS" | "SCIENCE_TECHNOLOGY" | "SPORTS" | "ENTERTAINMENT" | "HEALTH";
+                /** @description 팟캐스트 오디오 URL */
+                podcastUrl: string | null;
+                /** @description 생성 날짜 (ISO 8601) */
+                createdAt: string;
+                /** @description 수정 날짜 (ISO 8601) */
+                updatedAt: string;
+            };
+        };
+        DeleteDailyNewsResponseDto: {
+            /** @constant */
+            success: true;
+            status: number;
+            data: {
+                /** @description 삭제된 뉴스 ID */
+                id: string;
+            };
+        };
+        SearchDailyNewsResponseDto: {
+            /** @constant */
+            success: true;
+            status: number;
+            data: {
+                /** @description 뉴스 ID */
+                id: string;
+                /** @description 뉴스 제목 */
+                title: string;
+                /** @description 뉴스 URL */
+                url: string;
+                /** @description 뉴스 요약 */
+                snippet: string;
+                /** @description 이미지 URL */
+                imageUrl: string | null;
+                /** @description 파비콘 URL */
+                favicon: string | null;
+                /** @description 검색 날짜 (ISO 8601) */
+                searchDate: string;
+                /** @description 뉴스 발행 날짜 (ISO 8601) */
+                newsDate: string;
+                /** @description 사이트명 */
+                sitename: string | null;
+                /** @description 상세 요약 */
+                summary: string | null;
+                /**
+                 * @description 카테고리
+                 * @enum {string}
+                 */
+                category: "BUSINESS" | "SCIENCE_TECHNOLOGY" | "SPORTS" | "ENTERTAINMENT" | "HEALTH";
+                /** @description 팟캐스트 오디오 URL */
+                podcastUrl: string | null;
+                /** @description 생성 날짜 (ISO 8601) */
+                createdAt: string;
+                /** @description 수정 날짜 (ISO 8601) */
+                updatedAt: string;
+                /** @description 유사도 점수 (0-1) */
+                similarity?: number;
             }[];
-            /** @description Sampling temperature */
-            temperature?: number;
-            /** @description Nucleus sampling */
-            top_p?: number;
-            /** @description Number of completions */
-            n?: number;
-            /** @description Enable streaming */
-            stream?: boolean;
-            /** @description Stop sequences */
-            stop?: string | string[];
-            /** @description Max tokens */
-            max_tokens?: number;
-            /** @description Presence penalty */
-            presence_penalty?: number;
-            /** @description Frequency penalty */
-            frequency_penalty?: number;
-            /** @description Token bias */
-            logit_bias?: {
-                [key: string]: number;
-            };
-            /** @description End-user identifier */
-            user?: string;
-            /** @description Available tools */
-            tools?: {
-                /** @constant */
-                type: "function";
-                function: {
-                    /** @description Function name */
-                    name: string;
-                    /** @description Function description */
-                    description?: string;
-                    /** @description JSON Schema parameters */
-                    parameters?: {
-                        [key: string]: unknown;
-                    };
-                };
-            }[];
-            /** @description Tool choice strategy */
-            tool_choice?: ("none" | "auto" | "required") | {
-                /** @constant */
-                type: "function";
-                function: {
-                    name: string;
-                };
-            };
-            /** @description Response format */
-            response_format?: {
-                /** @enum {string} */
-                type: "text" | "json_object";
-            };
         };
     };
     responses: never;
@@ -6347,7 +6478,18 @@ export interface operations {
     };
     CustomToolNodeController_getCustomTools: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description 조회할 Custom Tool ID 목록 */
+                ids?: string[];
+                /** @description 조회 개수 (OFFSET 방식) */
+                take?: number;
+                /** @description 건너뛸 개수 (OFFSET 방식) */
+                skip?: number;
+                /** @description 커서 (마지막 항목의 created_at, CURSOR 방식) */
+                cursor?: string;
+                /** @description 조회 개수 (CURSOR 방식) */
+                limit?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -6360,7 +6502,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CustomToolNodeListResponseDto"];
+                    "application/json": components["schemas"]["CustomToolListWithCursorResponseDto"];
                 };
             };
             /** @description Bad Request - Invalid request data */
@@ -7416,7 +7558,18 @@ export interface operations {
     };
     ChatModelNodeController_getChatModelList: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description 시스템 템플릿 제외 */
+                without_system_template?: boolean;
+                /** @description 조회 개수 (OFFSET 방식) */
+                take?: number;
+                /** @description 건너뛸 개수 (OFFSET 방식) */
+                skip?: number;
+                /** @description 커서 (마지막 항목의 created_at, CURSOR 방식) */
+                cursor?: string;
+                /** @description 조회 개수 (CURSOR 방식) */
+                limit?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -7429,7 +7582,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ChatModelListResponseDto"];
+                    "application/json": components["schemas"]["ChatModelListWithCursorResponseDto"];
                 };
             };
             /** @description Bad Request - Invalid request data */
@@ -7708,26 +7861,24 @@ export interface operations {
             };
         };
     };
-    HelperNodeController_runJavascriptCode: {
+    ChatModelNodeController_createChatModelFromChatSession: {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                chatSessionId: string;
+            };
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RunJavascriptCodeDto"];
-            };
-        };
+        requestBody?: never;
         responses: {
-            /** @description 코드 실행 성공 */
+            /** @description 채팅 세션으로부터 Chat Model 생성 성공 */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ToolOutputStringDto"];
+                    "application/json": components["schemas"]["ChatModelResponseDto"];
                 };
             };
             /** @description Bad Request - Invalid request data */
@@ -7980,7 +8131,7 @@ export interface operations {
             header?: never;
             path: {
                 /** @description 실행할 내장 도구 키 */
-                toolKey: "web_search_with_query" | "scrape_page_into_markdown" | "extract_page_links" | "diagnose_page_screenshot" | "transcribe_audio" | "execute_python_code" | "analyze_image" | "generate_image" | "edit_image" | "extract_file_content";
+                toolKey: "web_search_with_query" | "scrape_page_into_markdown" | "extract_page_links" | "diagnose_page_screenshot" | "transcribe_audio" | "text_to_speech" | "execute_python_code" | "analyze_image" | "generate_image" | "edit_image" | "extract_file_content" | "get_uploaded_documents" | "analyze_youtube";
             };
             cookie?: never;
         };
@@ -8003,6 +8154,20 @@ export interface operations {
                     } | {
                         /** @description 오디오 URL */
                         audioUrl: string;
+                    } | {
+                        /** @description 음성으로 변환할 텍스트 */
+                        text: string;
+                        /**
+                         * @description 음성 이름 (기본값: Kore)
+                         * @default Kore
+                         * @enum {string}
+                         */
+                        voiceName?: "Kore" | "Zephyr" | "Leda" | "Aoede" | "Callirrhoe" | "Autonoe" | "Despina" | "Erinome" | "Puck" | "Charon" | "Orus" | "Enceladus" | "Iapetus" | "Umbriel" | "Algenib" | "Rasalgethi";
+                        /**
+                         * @description 말하기 스타일 (예: "natural and conversational", "energetic and enthusiastic", "calm and soothing"). 기본값: "natural and conversational"
+                         * @default natural and conversational
+                         */
+                        style?: string;
                     } | {
                         /** @description 코드 실행을 위한 프롬프트 */
                         prompt: string;
@@ -8050,6 +8215,20 @@ export interface operations {
                         uploadedUrl: string;
                         /** @description 추출 명령어 */
                         instructions: string;
+                    } | {
+                        /** @description Vector Storage ID */
+                        storageId?: string;
+                        /** @default 1000 */
+                        limit: number;
+                    } | {
+                        /** @description 유튜브 URL */
+                        youtubeUrl: string;
+                        /** @description 분석 프롬프트 */
+                        prompt: string;
+                        /** @description 시작 오프셋 (초 단위) */
+                        startOffset?: number;
+                        /** @description 종료 오프셋 (초 단위) */
+                        endOffset?: number;
                     };
                 };
             };
@@ -8062,6 +8241,86 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ToolOutputStringResponseDto"];
+                };
+            };
+            /** @description Bad Request - Invalid request data */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiBadRequestErrorDto"];
+                };
+            };
+            /** @description Unauthorized - Invalid or expired token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiUnauthorizedErrorDto"];
+                };
+            };
+            /** @description Not Found - Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiNotFoundErrorDto"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponseDto"];
+                };
+            };
+        };
+    };
+    BuiltInToolNodeController_tts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description 텍스트 음성 변환 인자 */
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description 음성으로 변환할 텍스트 */
+                    text: string;
+                    /**
+                     * @description 음성 이름 (기본값: Kore)
+                     * @default Kore
+                     * @enum {string}
+                     */
+                    voiceName?: "Kore" | "Zephyr" | "Leda" | "Aoede" | "Callirrhoe" | "Autonoe" | "Despina" | "Erinome" | "Puck" | "Charon" | "Orus" | "Enceladus" | "Iapetus" | "Umbriel" | "Algenib" | "Rasalgethi";
+                    /**
+                     * @description 말하기 스타일 (예: "natural and conversational", "energetic and enthusiastic", "calm and soothing"). 기본값: "natural and conversational"
+                     * @default natural and conversational
+                     */
+                    style?: string;
+                    /**
+                     * @description 임시 파일 업로드 여부
+                     * @default false
+                     */
+                    temp?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description 텍스트 음성 변환 성공 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ToolTtsResponseOutputDto"];
                 };
             };
             /** @description Bad Request - Invalid request data */
