@@ -27,9 +27,6 @@
     "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
     "lint": "eslint src --ext .ts",
     "test": "jest",
-    "prepare": "npm run build",
-    "postinstall": "npm run build",
-    "prepublishOnly": "npm run build",
     "gen:chat-schema": "openapi-typescript http://localhost:8000/api-ai/v2/openapi-sdk.json -o ./src/chat-schema.d.ts"
   },
   "keywords": [
