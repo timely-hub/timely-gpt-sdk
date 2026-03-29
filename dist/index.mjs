@@ -314,8 +314,10 @@ function decodeJwtPayload(token) {
 var { executeCode } = {
   executeCode: async (code, params) => {
     try {
-      const AsyncFunction = Object.getPrototypeOf(async function() {
-      }).constructor;
+      const AsyncFunction = Object.getPrototypeOf(
+        async function() {
+        }
+      ).constructor;
       const wrappedCode = `
         const params = arguments[0];
 
@@ -639,7 +641,10 @@ async function executeLlmNode(node, context, edges, allNodes) {
                           tool.function_body || ""
                         );
                       } else {
-                        const executionResult = await executeCode(tool.function_body || "", toolCall.args);
+                        const executionResult = await executeCode(
+                          tool.function_body || "",
+                          toolCall.args
+                        );
                         if (!executionResult.success) {
                           throw new Error(
                             executionResult.error || "Custom tool \uC2E4\uD589 \uC2E4\uD328 (\uC54C \uC218 \uC5C6\uB294 \uC624\uB958)"
@@ -712,6 +717,7 @@ async function executeLlmNode(node, context, edges, allNodes) {
       properties: nodeData.properties,
       tools: nodeData.tools,
       rag_storage_ids: nodeData.rag_storage_ids,
+      pre_retrieval_ids: nodeData.pre_retrieval_ids ?? nodeData.rag_storage_ids ?? [],
       files: [],
       locale: "ko",
       user_location: null,
@@ -1297,7 +1303,11 @@ async function executeConditionNode(node, context, allNodes, edges) {
           },
           "\uC870\uAC74 \uB178\uB4DC \uC870\uAC74 \uB9E4\uCE6D"
         );
-        return { selectedHandleId: condition.outputHandleId };
+        return {
+          selectedHandleId: condition.outputHandleId,
+          conditionLabel: condition.label,
+          conditionIndex: i
+        };
       }
     } catch (error) {
       console.error(`[\uC870\uAC74 \uD3C9\uAC00 \uC2E4\uD328] \uC870\uAC74 ${i + 1}:`, error);
@@ -1314,7 +1324,11 @@ async function executeConditionNode(node, context, allNodes, edges) {
     }
   }
   const defaultHandleId = node.data.nodeData?.defaultOutputHandleId || `${node.id}-output-default`;
-  return { selectedHandleId: defaultHandleId };
+  return {
+    selectedHandleId: defaultHandleId,
+    conditionLabel: "else",
+    conditionIndex: -1
+  };
 }
 async function executeUploadNode(node, context, allNodes, edges) {
   if (node.type !== "upload") {
@@ -1747,6 +1761,11 @@ function convertLegacyToolsToArray(options) {
 
 // src/generated/models.ts
 var AVAILABLE_MODELS = [
+  "auto",
+  "gpt-5.4-mini",
+  "gpt-5.4-nano",
+  "gpt-5.4",
+  "gpt-5.3 chat",
   "gpt-5.2",
   "gpt-5.2 chat",
   "gpt-5.1",
@@ -1760,24 +1779,24 @@ var AVAILABLE_MODELS = [
   "gpt-4o",
   "gpt-o4-mini",
   "gpt-o3",
+  "gpt-5.3-codex",
   "gpt-5.2-codex",
   "gpt-5.1-codex",
   "gpt-5.1-codex-mini",
   "gpt-5-codex",
-  "codex-mini",
   "o3-deep-research",
+  "gemini-3.1-flash-lite",
   "gemini-3-flash",
-  "gemini-3-pro",
+  "gemini-3.1-pro",
   "gemini-2.5-flash-lite",
   "gemini-2.5-flash",
   "gemini-2.0-flash",
   "gemini-2.5-pro",
+  "claude-haiku-4-5",
   "claude-sonnet-4-6",
   "claude-sonnet-4-5",
   "claude-opus-4-6",
-  "claude-haiku-4-5",
   "llama-4-scout-17b",
-  "llama-4-maverick-17b",
   "mistral-small",
   "mistral-medium",
   "mistral-large",
@@ -1794,6 +1813,7 @@ var AVAILABLE_MODELS = [
   "grok-3",
   "grok-3-mini",
   "grok-code-fast",
+  "solar-pro3",
   "solar-pro2"
 ];
 

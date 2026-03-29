@@ -7,6 +7,11 @@
  * npm run generate-models
  */
 export type ModelType =
+  | 'auto'
+  | 'gpt-5.4-mini'
+  | 'gpt-5.4-nano'
+  | 'gpt-5.4'
+  | 'gpt-5.3 chat'
   | 'gpt-5.2'
   | 'gpt-5.2 chat'
   | 'gpt-5.1'
@@ -20,24 +25,24 @@ export type ModelType =
   | 'gpt-4o'
   | 'gpt-o4-mini'
   | 'gpt-o3'
+  | 'gpt-5.3-codex'
   | 'gpt-5.2-codex'
   | 'gpt-5.1-codex'
   | 'gpt-5.1-codex-mini'
   | 'gpt-5-codex'
-  | 'codex-mini'
   | 'o3-deep-research'
+  | 'gemini-3.1-flash-lite'
   | 'gemini-3-flash'
-  | 'gemini-3-pro'
+  | 'gemini-3.1-pro'
   | 'gemini-2.5-flash-lite'
   | 'gemini-2.5-flash'
   | 'gemini-2.0-flash'
   | 'gemini-2.5-pro'
+  | 'claude-haiku-4-5'
   | 'claude-sonnet-4-6'
   | 'claude-sonnet-4-5'
   | 'claude-opus-4-6'
-  | 'claude-haiku-4-5'
   | 'llama-4-scout-17b'
-  | 'llama-4-maverick-17b'
   | 'mistral-small'
   | 'mistral-medium'
   | 'mistral-large'
@@ -54,12 +59,18 @@ export type ModelType =
   | 'grok-3'
   | 'grok-3-mini'
   | 'grok-code-fast'
+  | 'solar-pro3'
   | 'solar-pro2';
 
 /**
  * List of all available models
  */
 export const AVAILABLE_MODELS: readonly ModelType[] = [
+  'auto',
+  'gpt-5.4-mini',
+  'gpt-5.4-nano',
+  'gpt-5.4',
+  'gpt-5.3 chat',
   'gpt-5.2',
   'gpt-5.2 chat',
   'gpt-5.1',
@@ -73,24 +84,24 @@ export const AVAILABLE_MODELS: readonly ModelType[] = [
   'gpt-4o',
   'gpt-o4-mini',
   'gpt-o3',
+  'gpt-5.3-codex',
   'gpt-5.2-codex',
   'gpt-5.1-codex',
   'gpt-5.1-codex-mini',
   'gpt-5-codex',
-  'codex-mini',
   'o3-deep-research',
+  'gemini-3.1-flash-lite',
   'gemini-3-flash',
-  'gemini-3-pro',
+  'gemini-3.1-pro',
   'gemini-2.5-flash-lite',
   'gemini-2.5-flash',
   'gemini-2.0-flash',
   'gemini-2.5-pro',
+  'claude-haiku-4-5',
   'claude-sonnet-4-6',
   'claude-sonnet-4-5',
   'claude-opus-4-6',
-  'claude-haiku-4-5',
   'llama-4-scout-17b',
-  'llama-4-maverick-17b',
   'mistral-small',
   'mistral-medium',
   'mistral-large',
@@ -107,5 +118,6 @@ export const AVAILABLE_MODELS: readonly ModelType[] = [
   'grok-3',
   'grok-3-mini',
   'grok-code-fast',
+  'solar-pro3',
   'solar-pro2',
 ] as const;
