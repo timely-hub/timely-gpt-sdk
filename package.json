@@ -22,7 +22,6 @@
   },
   "scripts": {
     "generate-models": "tsx scripts/generate-model-types.ts",
-    "prebuild": "npm run generate-models",
     "build": "tsup src/index.ts --format cjs,esm --dts",
     "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
     "lint": "eslint src --ext .ts",
