@@ -1,5 +1,5 @@
 // Note: dotenv/config removed for browser compatibility
-import { CompletionRequest } from "../types";
+import { type CompletionRequest } from "../types";
 import { evaluateCEL, evaluateCondition } from "./evaluate-cel";
 import { resolveInputBindings } from "./resolve-input-bindings";
 import type {
