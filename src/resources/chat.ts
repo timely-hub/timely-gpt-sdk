@@ -76,10 +76,32 @@ export class Completions {
   async create(
     params: CompletionRequest
   ): Promise<CompletionResponse | Stream> {
-    if (!params.model) {
-      throw new Error(
-        "Either model must be provided"
-      );
+    if (!params || typeof params !== "object") {
+      throw new Error("params must be an object");
+    }
+    if (typeof params.model !== "string" || params.model.length === 0) {
+      throw new Error("params.model must be a non-empty string");
+    }
+    if (
+      params.session_id !== undefined &&
+      (typeof params.session_id !== "string" || params.session_id.length === 0)
+    ) {
+      // session_id는 optional이지만, 제공된다면 비어있는 문자열은 거부.
+      throw new Error("params.session_id, if provided, must be a non-empty string");
+    }
+    if (!Array.isArray(params.messages) || params.messages.length === 0) {
+      throw new Error("params.messages must be a non-empty array");
+    }
+    for (const [i, m] of params.messages.entries()) {
+      if (!m || typeof m !== "object") {
+        throw new Error(`params.messages[${i}] must be an object`);
+      }
+      if (typeof (m as any).role !== "string") {
+        throw new Error(`params.messages[${i}].role must be a string`);
+      }
+      if (typeof (m as any).content !== "string") {
+        throw new Error(`params.messages[${i}].content must be a string`);
+      }
     }
 
     // chat_type 검증

@@ -64,16 +64,23 @@ export class Stream implements AsyncIterable<StreamEvent> {
             return;
           }
 
+          let event: StreamEvent;
           try {
-            const event = JSON.parse(data) as StreamEvent;
-            yield event;
-
-            if (event.type === 'end' || event.type === 'error') {
-              return;
-            }
+            event = JSON.parse(data) as StreamEvent;
           } catch (error) {
-            console.error('Failed to parse SSE data:', data, error);
-            continue;
+            const message =
+              error instanceof Error ? error.message : String(error);
+            yield {
+              type: 'error',
+              error: `Failed to parse SSE event: ${message}`,
+            } as StreamEvent;
+            return;
+          }
+
+          yield event;
+
+          if (event.type === 'end' || event.type === 'error') {
+            return;
           }
         }
       }

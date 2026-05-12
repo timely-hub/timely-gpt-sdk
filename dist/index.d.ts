@@ -9343,6 +9343,12 @@ interface WorkflowContextOptions {
     baseURL?: string;
     getAccessToken?: () => Promise<string>;
     useStreamProxy?: boolean;
+    /**
+     * true면 workflow의 custom/function tool 노드에 포함된 임의 코드(`function_body`) 실행을 차단한다.
+     * 신뢰할 수 없는 출처의 workflow를 실행할 때 활성화 권장.
+     * 기본값: false (기존 동작 유지).
+     */
+    disableCodeExecution?: boolean;
 }
 declare class WorkflowExecutionContext {
     private _state;
@@ -9351,6 +9357,7 @@ declare class WorkflowExecutionContext {
     baseURL?: string;
     getAccessToken?: () => Promise<string>;
     useStreamProxy?: boolean;
+    disableCodeExecution?: boolean;
     private _addExecutionLog?;
     constructor(options?: WorkflowContextOptions);
     onNodeResult(nodeId: string, nodeType: string, data: any, message?: string): void;
@@ -9436,6 +9443,11 @@ interface WorkflowListResponse {
 interface RunWorkflowOptions {
     addExecutionLog?: WorkflowContextOptions["addExecutionLog"];
     executeCodeCallback?: WorkflowContextOptions["executeCodeCallback"];
+    /**
+     * true면 workflow의 custom/function tool 노드 코드 실행을 차단한다.
+     * 신뢰할 수 없는 출처의 workflow를 실행할 때 활성화 권장.
+     */
+    disableCodeExecution?: WorkflowContextOptions["disableCodeExecution"];
 }
 interface WorkflowStartParams {
     schema: Record<string, any> | null;

@@ -47,6 +47,11 @@ export interface WorkflowListResponse {
 export interface RunWorkflowOptions {
   addExecutionLog?: WorkflowContextOptions["addExecutionLog"];
   executeCodeCallback?: WorkflowContextOptions["executeCodeCallback"];
+  /**
+   * true면 workflow의 custom/function tool 노드 코드 실행을 차단한다.
+   * 신뢰할 수 없는 출처의 workflow를 실행할 때 활성화 권장.
+   */
+  disableCodeExecution?: WorkflowContextOptions["disableCodeExecution"];
 }
 
 export interface WorkflowStartParams {
@@ -260,6 +265,16 @@ export class Workflow {
     initialInputs: Record<string, any>,
     options?: RunWorkflowOptions
   ): Promise<any> {
+    if (typeof workflowId !== "string" || workflowId.length === 0) {
+      throw new Error("workflowId must be a non-empty string");
+    }
+    if (
+      initialInputs === null ||
+      typeof initialInputs !== "object" ||
+      Array.isArray(initialInputs)
+    ) {
+      throw new Error("initialInputs must be a plain object");
+    }
     // Fetch workflow data
     const workflowData = await this.fetch(workflowId);
 
@@ -269,6 +284,7 @@ export class Workflow {
       executeCodeCallback: options?.executeCodeCallback,
       baseURL: this.baseURL,
       getAccessToken: () => this.authManager.getAccessToken(),
+      disableCodeExecution: options?.disableCodeExecution,
     });
 
     // Execute workflow

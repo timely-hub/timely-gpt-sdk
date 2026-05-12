@@ -45,6 +45,12 @@ export interface WorkflowContextOptions {
   baseURL?: string;
   getAccessToken?: () => Promise<string>;
   useStreamProxy?: boolean; // true면 /api/stream 사용, false면 직접 호출
+  /**
+   * true면 workflow의 custom/function tool 노드에 포함된 임의 코드(`function_body`) 실행을 차단한다.
+   * 신뢰할 수 없는 출처의 workflow를 실행할 때 활성화 권장.
+   * 기본값: false (기존 동작 유지).
+   */
+  disableCodeExecution?: boolean;
 }
 
 export class WorkflowExecutionContext {
@@ -62,6 +68,7 @@ export class WorkflowExecutionContext {
   public baseURL?: string;
   public getAccessToken?: () => Promise<string>;
   public useStreamProxy?: boolean;
+  public disableCodeExecution?: boolean;
 
   private _addExecutionLog?: (logs: Omit<ExecutionLog, "timestamp">) => void;
 
@@ -83,6 +90,7 @@ export class WorkflowExecutionContext {
     this.baseURL = options?.baseURL;
     this.getAccessToken = options?.getAccessToken;
     this.useStreamProxy = options?.useStreamProxy;
+    this.disableCodeExecution = options?.disableCodeExecution;
     this._addExecutionLog = options?.addExecutionLog;
   }
 

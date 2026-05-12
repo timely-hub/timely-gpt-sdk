@@ -148,15 +148,20 @@ var Stream = class {
           if (data === "[DONE]") {
             return;
           }
+          let event;
           try {
-            const event = JSON.parse(data);
-            yield event;
-            if (event.type === "end" || event.type === "error") {
-              return;
-            }
+            event = JSON.parse(data);
           } catch (error) {
-            console.error("Failed to parse SSE data:", data, error);
-            continue;
+            const message = error instanceof Error ? error.message : String(error);
+            yield {
+              type: "error",
+              error: `Failed to parse SSE event: ${message}`
+            };
+            return;
+          }
+          yield event;
+          if (event.type === "end" || event.type === "error") {
+            return;
           }
         }
       }
@@ -173,10 +178,28 @@ var Completions = class {
     this.authManager = authManager;
   }
   async create(params) {
-    if (!params.model) {
-      throw new Error(
-        "Either model must be provided"
-      );
+    if (!params || typeof params !== "object") {
+      throw new Error("params must be an object");
+    }
+    if (typeof params.model !== "string" || params.model.length === 0) {
+      throw new Error("params.model must be a non-empty string");
+    }
+    if (params.session_id !== void 0 && (typeof params.session_id !== "string" || params.session_id.length === 0)) {
+      throw new Error("params.session_id, if provided, must be a non-empty string");
+    }
+    if (!Array.isArray(params.messages) || params.messages.length === 0) {
+      throw new Error("params.messages must be a non-empty array");
+    }
+    for (const [i, m] of params.messages.entries()) {
+      if (!m || typeof m !== "object") {
+        throw new Error(`params.messages[${i}] must be an object`);
+      }
+      if (typeof m.role !== "string") {
+        throw new Error(`params.messages[${i}].role must be a string`);
+      }
+      if (typeof m.content !== "string") {
+        throw new Error(`params.messages[${i}].content must be a string`);
+      }
     }
     const chatType = params.chat_type || "DYNAMIC_CHAT";
     if (chatType !== "NORMAL" && chatType !== "DYNAMIC_CHAT") {
@@ -251,11 +274,17 @@ function evaluateCondition(expression, context) {
 }
 
 // src/utils/object.ts
+var FORBIDDEN_KEYS = /* @__PURE__ */ new Set(["__proto__", "constructor", "prototype"]);
 function setPath(obj, path, value) {
   const keys = path.split(".");
+  for (const key of keys) {
+    if (FORBIDDEN_KEYS.has(key)) {
+      throw new Error(`Forbidden key in path: ${key}`);
+    }
+  }
   const lastKey = keys.pop();
   const target = keys.reduce((acc, key) => {
-    if (!(key in acc) || typeof acc[key] !== "object" || acc[key] === null) {
+    if (!Object.prototype.hasOwnProperty.call(acc, key) || typeof acc[key] !== "object" || acc[key] === null) {
       acc[key] = {};
     }
     return acc[key];
@@ -297,7 +326,39 @@ function resolveInputBindings(inputBindings, nodeOutputs, allNodes, globalState)
 }
 
 // src/workflow/workflow-executor.ts
-function decodeJwtPayload(token) {
+function assertSafeMCPUrl(raw) {
+  let url;
+  try {
+    url = new URL(raw);
+  } catch {
+    throw new Error(`Invalid MCP server_url: not a valid URL`);
+  }
+  if (url.protocol !== "https:" && url.protocol !== "http:") {
+    throw new Error(
+      `Invalid MCP server_url protocol: ${url.protocol} (only http/https allowed)`
+    );
+  }
+  const host = url.hostname;
+  const isPrivate = host === "localhost" || host === "0.0.0.0" || /^127\./.test(host) || /^10\./.test(host) || /^192\.168\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host) || /^169\.254\./.test(host) || host === "::1" || host === "[::1]" || /^\[?fc/i.test(host) || /^\[?fd/i.test(host) || /^\[?fe80/i.test(host);
+  if (isPrivate) {
+    throw new Error(
+      `MCP server_url targets a non-routable host (${host}); refusing to proxy.`
+    );
+  }
+}
+async function requireAccessToken(context) {
+  if (!context.getAccessToken) {
+    throw new Error(
+      "WorkflowContext.getAccessToken is required. Pass an async function that returns a Timely access token."
+    );
+  }
+  const token = await context.getAccessToken();
+  if (typeof token !== "string" || token.length === 0) {
+    throw new Error("WorkflowContext.getAccessToken returned an empty token.");
+  }
+  return token;
+}
+function decodeTokenPayloadForSessionNaming(token) {
   try {
     const base64Url = token.split(".")[1];
     if (!base64Url) return null;
@@ -306,8 +367,8 @@ function decodeJwtPayload(token) {
       atob(base64).split("").map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2)).join("")
     );
     return JSON.parse(jsonPayload);
-  } catch (e) {
-    console.warn("Failed to decode JWT payload:", e);
+  } catch {
+    console.warn("Failed to decode token payload for session naming.");
     return null;
   }
 }
@@ -384,6 +445,11 @@ async function executeToolNode(node, context, allNodes) {
       throw new Error("Tool \uB178\uB4DC \uB370\uC774\uD130\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4");
     }
     if (nodeData.type === "custom" || nodeData.type === "function") {
+      if (context.disableCodeExecution) {
+        throw new Error(
+          "Custom/function tool code execution is disabled by context.disableCodeExecution. Enable it only when the workflow source is fully trusted."
+        );
+      }
       const functionCode = nodeData.tool.function_body ?? "";
       const toolName = nodeData.tool.name || nodeData.tool.id || "unknown";
       if (context.executeCodeCallback) {
@@ -402,7 +468,7 @@ async function executeToolNode(node, context, allNodes) {
         result = executionResult.result ?? executionResult;
       }
     } else if (nodeData.type === "built-in") {
-      const accessToken = context.getAccessToken ? await context.getAccessToken() : "master";
+      const accessToken = await requireAccessToken(context);
       const response = await fetch(
         `${context.baseURL}/built-in-tool-node/${nodeData.tool.id}/invoke`,
         {
@@ -430,8 +496,9 @@ async function executeToolNode(node, context, allNodes) {
       const serverUrl = nodeData.tool.url;
       const canInvokeOnServer = transport === "sse" && serverUrl;
       if (canInvokeOnServer && nodeData.allowedTools && nodeData.allowedTools.length > 0) {
+        assertSafeMCPUrl(serverUrl);
         const allowedTool = nodeData.allowedTools[0];
-        const accessToken = context.getAccessToken ? await context.getAccessToken() : "master";
+        const accessToken = await requireAccessToken(context);
         const mcpInResponse = await fetch(
           `${context.baseURL}/ai-workflow/mcp-server-node/invoke-tool`,
           {
@@ -516,10 +583,10 @@ async function executeLlmNode(node, context, edges, allNodes) {
     if (context.getAccessToken) {
       try {
         const token = await context.getAccessToken();
-        const payload = decodeJwtPayload(token);
+        const payload = decodeTokenPayloadForSessionNaming(token);
         spaceMemberId = payload?.spaceMemberId || payload?.sub || "anonymous";
-      } catch (e) {
-        console.warn("Failed to extract spaceMemberId from token:", e);
+      } catch {
+        console.warn("Failed to extract spaceMemberId for session naming.");
       }
     }
     const sessionId = `workflow-${spaceMemberId}-${node.id}${nodeLabel ? `-${nodeLabel.trim()}` : ""}`;
@@ -543,7 +610,7 @@ async function executeLlmNode(node, context, edges, allNodes) {
           body: formData
         });
       } else {
-        const accessToken = context.getAccessToken ? await context.getAccessToken() : "master";
+        const accessToken = await requireAccessToken(context);
         response = await fetch(`${baseURL}/llm-completion`, {
           method: "POST",
           headers: {
@@ -580,130 +647,137 @@ async function executeLlmNode(node, context, edges, allNodes) {
             continue;
           }
           const data = line.slice(6);
+          let event;
           try {
-            const event = JSON.parse(data);
-            context.onNodeResult?.(
-              node.id,
-              node.type,
-              {
-                type: "stream",
-                data: event
-              },
-              "LLM \uB178\uB4DC \uC2A4\uD2B8\uB9AC\uBC0D \uC774\uBCA4\uD2B8"
-            );
-            switch (event.type) {
-              case "start":
-                break;
-              case "token":
-                accumulatedMessage += event.content;
-                break;
-              case "thinking":
-                accumulatedThinking += event.content;
-                break;
-              case "progress":
-                break;
-              case "final_response":
-                hasFinalResponse = true;
+            event = JSON.parse(data);
+          } catch (parseError) {
+            const message = parseError instanceof Error ? parseError.message : String(parseError);
+            throw new Error(`Failed to parse LLM SSE event: ${message}`);
+          }
+          context.onNodeResult?.(
+            node.id,
+            node.type,
+            {
+              type: "stream",
+              data: event
+            },
+            "LLM \uB178\uB4DC \uC2A4\uD2B8\uB9AC\uBC0D \uC774\uBCA4\uD2B8"
+          );
+          switch (event.type) {
+            case "start":
+              break;
+            case "token":
+              accumulatedMessage += event.content;
+              break;
+            case "thinking":
+              accumulatedThinking += event.content;
+              break;
+            case "progress":
+              break;
+            case "final_response":
+              hasFinalResponse = true;
+              allMessages.push({
+                role: "assistant",
+                content: event.message
+              });
+              if (event.parsed) {
+                parsedOutput = event.parsed;
+              }
+              break;
+            case "end":
+              if (!hasFinalResponse && accumulatedMessage) {
                 allMessages.push({
                   role: "assistant",
-                  content: event.message
+                  content: accumulatedMessage
                 });
-                if (event.parsed) {
-                  parsedOutput = event.parsed;
-                }
-                break;
-              case "end":
-                if (!hasFinalResponse && accumulatedMessage) {
-                  allMessages.push({
-                    role: "assistant",
-                    content: accumulatedMessage
-                  });
-                }
-                break;
-              case "error":
-                throw new Error(event.message || event.error);
-              case "tool_call_required":
-                const toolResults = await Promise.all(
-                  event.tool_calls.map(async (toolCall) => {
-                    let result2;
-                    const tool = nodeData.tools?.find(
-                      (t) => t.name === toolCall.name
-                    );
-                    if (!tool) {
-                      result2 = JSON.stringify({
-                        error: "\uB3C4\uAD6C\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4"
-                      });
-                    } else if (tool.type === "function" || tool.type === "custom") {
-                      if (context.executeCodeCallback) {
-                        result2 = await context.executeCodeCallback(
-                          toolCall.name,
-                          toolCall.args,
-                          tool.function_body || ""
-                        );
-                      } else {
-                        const executionResult = await executeCode(
-                          tool.function_body || "",
-                          toolCall.args
-                        );
-                        if (!executionResult.success) {
-                          throw new Error(
-                            executionResult.error || "Custom tool \uC2E4\uD589 \uC2E4\uD328 (\uC54C \uC218 \uC5C6\uB294 \uC624\uB958)"
-                          );
-                        }
-                        result2 = executionResult?.result ?? executionResult;
-                      }
-                    } else if (tool.type === "built-in") {
-                      const accessToken = context.getAccessToken ? await context.getAccessToken() : "master";
-                      const builtInResponse = await fetch(
-                        `${context.baseURL}/built-in-tool-node/${tool.id}/invoke`,
-                        {
-                          method: "POST",
-                          headers: {
-                            "Content-Type": "application/json",
-                            Authorization: `Bearer ${accessToken}`
-                          },
-                          body: JSON.stringify({ args: toolCall.args })
-                        }
+              }
+              break;
+            case "error":
+              throw new Error(event.message || event.error);
+            case "tool_call_required":
+              const toolResults = await Promise.all(
+                event.tool_calls.map(async (toolCall) => {
+                  let result2;
+                  const tool = nodeData.tools?.find(
+                    (t) => t.name === toolCall.name
+                  );
+                  if (!tool) {
+                    result2 = JSON.stringify({
+                      error: "\uB3C4\uAD6C\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4"
+                    });
+                  } else if (tool.type === "function" || tool.type === "custom") {
+                    if (context.disableCodeExecution) {
+                      throw new Error(
+                        "Custom/function tool code execution is disabled by context.disableCodeExecution."
                       );
-                      if (!builtInResponse.ok) {
-                        result2 = JSON.stringify({
-                          error: "Built-in tool \uC2E4\uD589 \uC2E4\uD328"
-                        });
-                      } else {
-                        const builtInData = await builtInResponse.json();
-                        result2 = builtInData.data.output;
-                      }
+                    }
+                    if (context.executeCodeCallback) {
+                      result2 = await context.executeCodeCallback(
+                        toolCall.name,
+                        toolCall.args,
+                        tool.function_body || ""
+                      );
                     } else {
+                      const executionResult = await executeCode(
+                        tool.function_body || "",
+                        toolCall.args
+                      );
+                      if (!executionResult.success) {
+                        throw new Error(
+                          executionResult.error || "Custom tool \uC2E4\uD589 \uC2E4\uD328 (\uC54C \uC218 \uC5C6\uB294 \uC624\uB958)"
+                        );
+                      }
+                      result2 = executionResult?.result ?? executionResult;
+                    }
+                  } else if (tool.type === "built-in") {
+                    const accessToken = await requireAccessToken(context);
+                    const builtInResponse = await fetch(
+                      `${context.baseURL}/built-in-tool-node/${tool.id}/invoke`,
+                      {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json",
+                          Authorization: `Bearer ${accessToken}`
+                        },
+                        body: JSON.stringify({ args: toolCall.args })
+                      }
+                    );
+                    if (!builtInResponse.ok) {
                       result2 = JSON.stringify({
-                        error: "\uC9C0\uC6D0\uD558\uC9C0 \uC54A\uB294 \uB3C4\uAD6C \uD0C0\uC785"
+                        error: "Built-in tool \uC2E4\uD589 \uC2E4\uD328"
                       });
+                    } else {
+                      const builtInData = await builtInResponse.json();
+                      result2 = builtInData.data.output;
                     }
-                    if (result2 && typeof result2 !== "string") {
-                      result2 = JSON.stringify(result2);
-                    }
-                    return {
-                      role: "tool",
-                      name: toolCall.name,
-                      tool_call_id: toolCall.tool_call_id,
-                      content: result2
-                    };
-                  })
-                );
-                await processStream(
-                  {
-                    ...requestBody,
-                    messages: toolResults
-                  },
-                  event.configurable.checkpoint_id,
-                  context.baseURL || ""
-                );
-                return;
-              // 재귀 호출 후 종료
-              default:
-                break;
-            }
-          } catch (parseError) {
-            console.error("[Stream Parse Error]", parseError);
+                  } else {
+                    result2 = JSON.stringify({
+                      error: "\uC9C0\uC6D0\uD558\uC9C0 \uC54A\uB294 \uB3C4\uAD6C \uD0C0\uC785"
+                    });
+                  }
+                  if (result2 && typeof result2 !== "string") {
+                    result2 = JSON.stringify(result2);
+                  }
+                  return {
+                    role: "tool",
+                    name: toolCall.name,
+                    tool_call_id: toolCall.tool_call_id,
+                    content: result2
+                  };
+                })
+              );
+              await processStream(
+                {
+                  ...requestBody,
+                  messages: toolResults
+                },
+                event.configurable.checkpoint_id,
+                context.baseURL || ""
+              );
+              return;
+            // 재귀 호출 후 종료
+            default:
+              break;
           }
         }
       }
@@ -802,7 +876,7 @@ async function executeTransformerNode(node, context, allNodes, edges) {
       throw new Error("Transformer \uB178\uB4DC\uC758 \uB2E4\uC74C \uB178\uB4DC\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4");
     }
     const targetInputType = extractInputSchema(targetNode);
-    const accessToken = context.getAccessToken ? await context.getAccessToken() : "master";
+    const accessToken = await requireAccessToken(context);
     const response = await fetch(
       `${context.baseURL}/ai-workflow/helper-node/auto-transformer`,
       {
@@ -982,7 +1056,7 @@ async function executeRAGNode(node, context, edges, allNodes) {
       },
       "RAG \uB178\uB4DC \uAC80\uC0C9 \uC2DC\uC791"
     );
-    const accessToken = context.getAccessToken ? await context.getAccessToken() : "master";
+    const accessToken = await requireAccessToken(context);
     const response = await fetch(
       `${context.baseURL}/ai-workflow/rag-storage-node/${nodeData.storage_id}/query`,
       {
@@ -1513,6 +1587,7 @@ var WorkflowExecutionContext = class {
     this.baseURL = options?.baseURL;
     this.getAccessToken = options?.getAccessToken;
     this.useStreamProxy = options?.useStreamProxy;
+    this.disableCodeExecution = options?.disableCodeExecution;
     this._addExecutionLog = options?.addExecutionLog;
   }
   // onNodeResult를 호출하면 자동으로 addExecutionLog도 호출
@@ -1702,12 +1777,19 @@ var Workflow = class {
    * ```
    */
   async run(workflowId, initialInputs, options) {
+    if (typeof workflowId !== "string" || workflowId.length === 0) {
+      throw new Error("workflowId must be a non-empty string");
+    }
+    if (initialInputs === null || typeof initialInputs !== "object" || Array.isArray(initialInputs)) {
+      throw new Error("initialInputs must be a plain object");
+    }
     const workflowData = await this.fetch(workflowId);
     const context = new WorkflowExecutionContext({
       addExecutionLog: options?.addExecutionLog,
       executeCodeCallback: options?.executeCodeCallback,
       baseURL: this.baseURL,
-      getAccessToken: () => this.authManager.getAccessToken()
+      getAccessToken: () => this.authManager.getAccessToken(),
+      disableCodeExecution: options?.disableCodeExecution
     });
     const result = await executeWorkflow(
       workflowData.nodes,

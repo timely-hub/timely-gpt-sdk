@@ -9,11 +9,70 @@ import type {
 } from "./workflow-types";
 
 /**
- * JWT Payload 디코딩 (서명 검증 없이 payload만 추출)
+ * MCP `server_url`을 클라이언트에서 가볍게 검증한다.
+ * 허용: http/https + 외부 hostname.
+ * 차단: 잘못된 스킴, localhost, RFC1918 사설망, IPv6 loopback/link-local.
+ */
+function assertSafeMCPUrl(raw: string): void {
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    throw new Error(`Invalid MCP server_url: not a valid URL`);
+  }
+  if (url.protocol !== "https:" && url.protocol !== "http:") {
+    throw new Error(
+      `Invalid MCP server_url protocol: ${url.protocol} (only http/https allowed)`
+    );
+  }
+  const host = url.hostname;
+  const isPrivate =
+    host === "localhost" ||
+    host === "0.0.0.0" ||
+    /^127\./.test(host) ||
+    /^10\./.test(host) ||
+    /^192\.168\./.test(host) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
+    /^169\.254\./.test(host) ||
+    host === "::1" ||
+    host === "[::1]" ||
+    /^\[?fc/i.test(host) ||
+    /^\[?fd/i.test(host) ||
+    /^\[?fe80/i.test(host);
+  if (isPrivate) {
+    throw new Error(
+      `MCP server_url targets a non-routable host (${host}); refusing to proxy.`
+    );
+  }
+}
+
+/**
+ * WorkflowContext에서 access token을 가져온다.
+ * `getAccessToken`이 지정되지 않은 경우 명시적으로 실패한다.
+ */
+async function requireAccessToken(
+  context: WorkflowContextType
+): Promise<string> {
+  if (!context.getAccessToken) {
+    throw new Error(
+      "WorkflowContext.getAccessToken is required. " +
+        "Pass an async function that returns a Timely access token."
+    );
+  }
+  const token = await context.getAccessToken();
+  if (typeof token !== "string" || token.length === 0) {
+    throw new Error("WorkflowContext.getAccessToken returned an empty token.");
+  }
+  return token;
+}
+
+/**
+ * Token payload를 base64 디코드한다. 식별자 추출용(sessionId 명명) 한정.
+ * 서명을 검증하지 않으므로 권한 판단에 사용하지 말 것.
  * @param token JWT 토큰 문자열
  * @returns 디코딩된 payload 객체 또는 null
  */
-function decodeJwtPayload(token: string): any {
+function decodeTokenPayloadForSessionNaming(token: string): any {
   try {
     const base64Url = token.split(".")[1];
     if (!base64Url) return null;
@@ -25,8 +84,9 @@ function decodeJwtPayload(token: string): any {
         .join("")
     );
     return JSON.parse(jsonPayload);
-  } catch (e) {
-    console.warn("Failed to decode JWT payload:", e);
+  } catch {
+    // 토큰/에러 객체 자체는 로그에 남기지 않는다 (PII/credential 노출 방지).
+    console.warn("Failed to decode token payload for session naming.");
     return null;
   }
 }
@@ -133,6 +193,12 @@ async function executeToolNode(
     }
 
     if (nodeData.type === "custom" || nodeData.type === "function") {
+      if (context.disableCodeExecution) {
+        throw new Error(
+          "Custom/function tool code execution is disabled by context.disableCodeExecution. " +
+            "Enable it only when the workflow source is fully trusted."
+        );
+      }
       const functionCode = nodeData.tool.function_body ?? "";
       const toolName = nodeData.tool.name || nodeData.tool.id || "unknown";
 
@@ -157,9 +223,7 @@ async function executeToolNode(
       }
     } else if (nodeData.type === "built-in") {
       // Built-in tool 실행을 위한 fetch 직접 호출
-      const accessToken = context.getAccessToken
-        ? await context.getAccessToken()
-        : "master";
+      const accessToken = await requireAccessToken(context);
       const response = await fetch(
         `${context.baseURL}/built-in-tool-node/${nodeData.tool.id}/invoke`,
         {
@@ -197,10 +261,9 @@ async function executeToolNode(
         nodeData.allowedTools &&
         nodeData.allowedTools.length > 0
       ) {
+        assertSafeMCPUrl(serverUrl);
         const allowedTool = nodeData.allowedTools[0];
-        const accessToken = context.getAccessToken
-          ? await context.getAccessToken()
-          : "master";
+        const accessToken = await requireAccessToken(context);
 
         const mcpInResponse = await fetch(
           `${context.baseURL}/ai-workflow/mcp-server-node/invoke-tool`,
@@ -305,15 +368,16 @@ async function executeLlmNode(
       ? (nodeData.use_background_summarize ?? false)
       : false;
 
-    // spaceMemberId를 토큰에서 추출하여 sessionId에 포함
+    // spaceMemberId를 토큰에서 추출하여 sessionId에 포함 (식별/네이밍 용도, authorization 아님)
     let spaceMemberId = "anonymous";
     if (context.getAccessToken) {
       try {
         const token = await context.getAccessToken();
-        const payload = decodeJwtPayload(token);
+        const payload = decodeTokenPayloadForSessionNaming(token);
         spaceMemberId = payload?.spaceMemberId || payload?.sub || "anonymous";
-      } catch (e) {
-        console.warn("Failed to extract spaceMemberId from token:", e);
+      } catch {
+        // 토큰/에러 객체를 로그로 노출하지 않는다.
+        console.warn("Failed to extract spaceMemberId for session naming.");
       }
     }
 
@@ -348,9 +412,7 @@ async function executeLlmNode(
         });
       } else {
         // Direct API call for SDK usage
-        const accessToken = context.getAccessToken
-          ? await context.getAccessToken()
-          : "master";
+        const accessToken = await requireAccessToken(context);
 
         response = await fetch(`${baseURL}/llm-completion`, {
           method: "POST",
@@ -397,159 +459,171 @@ async function executeLlmNode(
           }
 
           const data = line.slice(6);
+
+          // JSON.parse 실패만 격리해서 처리. switch 내부에서 발생하는 throw
+          // (예: disableCodeExecution 가드, server-side error event, custom tool 실패)는
+          // 정상적으로 위로 전파되어야 한다.
+          let event: any;
           try {
-            const event: any = JSON.parse(data);
+            event = JSON.parse(data);
+          } catch (parseError) {
+            const message =
+              parseError instanceof Error
+                ? parseError.message
+                : String(parseError);
+            throw new Error(`Failed to parse LLM SSE event: ${message}`);
+          }
 
-            context.onNodeResult?.(
-              node.id,
-              node.type,
-              {
-                type: "stream",
-                data: event,
-              },
-              "LLM 노드 스트리밍 이벤트"
-            );
+          context.onNodeResult?.(
+            node.id,
+            node.type,
+            {
+              type: "stream",
+              data: event,
+            },
+            "LLM 노드 스트리밍 이벤트"
+          );
 
-            switch (event.type) {
-              case "start":
-                break;
+          switch (event.type) {
+            case "start":
+              break;
 
-              case "token":
-                accumulatedMessage += event.content;
-                break;
+            case "token":
+              accumulatedMessage += event.content;
+              break;
 
-              case "thinking":
-                accumulatedThinking += event.content;
-                break;
+            case "thinking":
+              accumulatedThinking += event.content;
+              break;
 
-              case "progress":
-                break;
+            case "progress":
+              break;
 
-              case "final_response":
-                hasFinalResponse = true;
+            case "final_response":
+              hasFinalResponse = true;
+              allMessages.push({
+                role: "assistant",
+                content: event.message,
+              });
+
+              // JSON 모드일 때 parsed 저장
+              if (event.parsed) {
+                parsedOutput = event.parsed;
+              }
+              break;
+
+            case "end":
+              // final_response가 없었을 때만 메시지 추가
+              if (!hasFinalResponse && accumulatedMessage) {
                 allMessages.push({
                   role: "assistant",
-                  content: event.message,
+                  content: accumulatedMessage,
                 });
+              }
+              break;
 
-                // JSON 모드일 때 parsed 저장
-                if (event.parsed) {
-                  parsedOutput = event.parsed;
-                }
-                break;
+            case "error":
+              throw new Error(event.message || event.error);
 
-              case "end":
-                // final_response가 없었을 때만 메시지 추가
-                if (!hasFinalResponse && accumulatedMessage) {
-                  allMessages.push({
-                    role: "assistant",
-                    content: accumulatedMessage,
-                  });
-                }
-                break;
+            case "tool_call_required":
+              // 도구 실행
+              const toolResults = await Promise.all(
+                event.tool_calls.map(async (toolCall: any) => {
+                  let result: string;
 
-              case "error":
-                throw new Error(event.message || event.error);
-
-              case "tool_call_required":
-                // 도구 실행
-                const toolResults = await Promise.all(
-                  event.tool_calls.map(async (toolCall: any) => {
-                    let result: string;
-
-                    // 도구 타입별 실행
-                    const tool = nodeData.tools?.find(
-                      (t: any) => t.name === toolCall.name
-                    );
-                    if (!tool) {
-                      result = JSON.stringify({
-                        error: "도구를 찾을 수 없습니다",
-                      });
-                    } else if (
-                      tool.type === "function" ||
-                      tool.type === "custom"
-                    ) {
-                      if (context.executeCodeCallback) {
-                        result = await context.executeCodeCallback(
-                          toolCall.name,
-                          toolCall.args,
-                          tool.function_body || ""
-                        );
-                      } else {
-                        const executionResult = await executeCode(
-                          tool.function_body || "",
-                          toolCall.args
-                        );
-
-                        // Custom tool 실행 결과 검증
-                        if (!executionResult.success) {
-                          throw new Error(
-                            executionResult.error ||
-                              "Custom tool 실행 실패 (알 수 없는 오류)"
-                          );
-                        }
-
-                        result = executionResult?.result ?? executionResult;
-                      }
-                    } else if (tool.type === "built-in") {
-                      const accessToken = context.getAccessToken
-                        ? await context.getAccessToken()
-                        : "master";
-                      const builtInResponse = await fetch(
-                        `${context.baseURL}/built-in-tool-node/${tool.id}/invoke`,
-                        {
-                          method: "POST",
-                          headers: {
-                            "Content-Type": "application/json",
-                            Authorization: `Bearer ${accessToken}`,
-                          },
-                          body: JSON.stringify({ args: toolCall.args }),
-                        }
+                  // 도구 타입별 실행
+                  const tool = nodeData.tools?.find(
+                    (t: any) => t.name === toolCall.name
+                  );
+                  if (!tool) {
+                    result = JSON.stringify({
+                      error: "도구를 찾을 수 없습니다",
+                    });
+                  } else if (
+                    tool.type === "function" ||
+                    tool.type === "custom"
+                  ) {
+                    if (context.disableCodeExecution) {
+                      throw new Error(
+                        "Custom/function tool code execution is disabled by context.disableCodeExecution."
+                      );
+                    }
+                    if (context.executeCodeCallback) {
+                      result = await context.executeCodeCallback(
+                        toolCall.name,
+                        toolCall.args,
+                        tool.function_body || ""
+                      );
+                    } else {
+                      const executionResult = await executeCode(
+                        tool.function_body || "",
+                        toolCall.args
                       );
 
-                      if (!builtInResponse.ok) {
-                        result = JSON.stringify({
-                          error: "Built-in tool 실행 실패",
-                        });
-                      } else {
-                        const builtInData = await builtInResponse.json();
-                        result = builtInData.data.output;
+                      // Custom tool 실행 결과 검증
+                      if (!executionResult.success) {
+                        throw new Error(
+                          executionResult.error ||
+                            "Custom tool 실행 실패 (알 수 없는 오류)"
+                        );
                       }
-                    } else {
+
+                      result = executionResult?.result ?? executionResult;
+                    }
+                  } else if (tool.type === "built-in") {
+                    const accessToken = await requireAccessToken(context);
+                    const builtInResponse = await fetch(
+                      `${context.baseURL}/built-in-tool-node/${tool.id}/invoke`,
+                      {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json",
+                          Authorization: `Bearer ${accessToken}`,
+                        },
+                        body: JSON.stringify({ args: toolCall.args }),
+                      }
+                    );
+
+                    if (!builtInResponse.ok) {
                       result = JSON.stringify({
-                        error: "지원하지 않는 도구 타입",
+                        error: "Built-in tool 실행 실패",
                       });
+                    } else {
+                      const builtInData = await builtInResponse.json();
+                      result = builtInData.data.output;
                     }
+                  } else {
+                    result = JSON.stringify({
+                      error: "지원하지 않는 도구 타입",
+                    });
+                  }
 
-                    if (result && typeof result !== "string") {
-                      result = JSON.stringify(result);
-                    }
-                    return {
-                      role: "tool" as const,
-                      name: toolCall.name,
-                      tool_call_id: toolCall.tool_call_id,
-                      content: result,
-                    };
-                  })
-                );
+                  if (result && typeof result !== "string") {
+                    result = JSON.stringify(result);
+                  }
+                  return {
+                    role: "tool" as const,
+                    name: toolCall.name,
+                    tool_call_id: toolCall.tool_call_id,
+                    content: result,
+                  };
+                })
+              );
 
-                // 재귀 호출
-                await processStream(
-                  {
-                    ...requestBody,
-                    messages: toolResults,
-                  },
-                  event.configurable.checkpoint_id,
-                  context.baseURL || ""
-                );
-                return; // 재귀 호출 후 종료
+              // 재귀 호출
+              await processStream(
+                {
+                  ...requestBody,
+                  messages: toolResults,
+                },
+                event.configurable.checkpoint_id,
+                context.baseURL || ""
+              );
+              return; // 재귀 호출 후 종료
 
-              default:
-                // 알 수 없는 이벤트 타입은 무시
-                break;
-            }
-          } catch (parseError) {
-            console.error("[Stream Parse Error]", parseError);
+            default:
+              // 알 수 없는 이벤트 타입은 무시
+              break;
           }
         }
       }
@@ -693,9 +767,7 @@ async function executeTransformerNode(
     const targetInputType = extractInputSchema(targetNode);
 
     // Auto-Transformer API 호출
-    const accessToken = context.getAccessToken
-      ? await context.getAccessToken()
-      : "master";
+    const accessToken = await requireAccessToken(context);
     const response = await fetch(
       `${context.baseURL}/ai-workflow/helper-node/auto-transformer`,
       {
@@ -961,9 +1033,7 @@ async function executeRAGNode(
       "RAG 노드 검색 시작"
     );
 
-    const accessToken = context.getAccessToken
-      ? await context.getAccessToken()
-      : "master";
+    const accessToken = await requireAccessToken(context);
     const response = await fetch(
       `${context.baseURL}/ai-workflow/rag-storage-node/${nodeData.storage_id}/query`,
       {
