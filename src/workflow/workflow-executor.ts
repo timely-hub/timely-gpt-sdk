@@ -8,6 +8,41 @@ import type {
   WorkflowContextType,
 } from "./workflow-types";
 
+// `disableCodeExecution`을 명시하지 않은 채로 custom/function tool을 실행할 때
+// 프로세스당 한 번만 경고. 신뢰모델을 명확히 하지 않은 호출자를 깨우기 위한 안내.
+let warnedAboutImplicitCodeExecution = false;
+function warnImplicitCodeExecutionOnce(): void {
+  if (warnedAboutImplicitCodeExecution) return;
+  warnedAboutImplicitCodeExecution = true;
+  console.warn(
+    "[timely-gpt-sdk] Custom/function tool code is being executed without an explicit " +
+      "`disableCodeExecution` setting. The workflow `function_body` runs with full Node/browser " +
+      "privileges. Pass `disableCodeExecution: true` for untrusted workflows, or `false` to " +
+      "acknowledge the trust model and silence this warning."
+  );
+}
+
+const DEFAULT_MAX_TOOL_CALL_DEPTH = 25;
+const DEFAULT_FETCH_TIMEOUT_MS = 30000;
+
+/**
+ * Fetch에 타임아웃을 추가한다. 응답 헤더 수신 전까지 한정 적용되며,
+ * 스트리밍 응답에는 사용하지 말 것 (스트림 도중 abort 시 응답이 잘림).
+ */
+async function fetchWithTimeout(
+  input: string,
+  init: RequestInit,
+  timeoutMs: number
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 /**
  * MCP `server_url`을 클라이언트에서 가볍게 검증한다.
  * 허용: http/https + 외부 hostname.
@@ -199,6 +234,9 @@ async function executeToolNode(
             "Enable it only when the workflow source is fully trusted."
         );
       }
+      if (context.disableCodeExecution === undefined) {
+        warnImplicitCodeExecutionOnce();
+      }
       const functionCode = nodeData.tool.function_body ?? "";
       const toolName = nodeData.tool.name || nodeData.tool.id || "unknown";
 
@@ -224,7 +262,7 @@ async function executeToolNode(
     } else if (nodeData.type === "built-in") {
       // Built-in tool 실행을 위한 fetch 직접 호출
       const accessToken = await requireAccessToken(context);
-      const response = await fetch(
+      const response = await fetchWithTimeout(
         `${context.baseURL}/built-in-tool-node/${nodeData.tool.id}/invoke`,
         {
           method: "POST",
@@ -233,7 +271,8 @@ async function executeToolNode(
             Authorization: `Bearer ${accessToken}`,
           },
           body: JSON.stringify({ args: inputs }),
-        }
+        },
+        context.fetchTimeoutMs ?? DEFAULT_FETCH_TIMEOUT_MS
       );
 
       if (!response.ok) {
@@ -265,7 +304,7 @@ async function executeToolNode(
         const allowedTool = nodeData.allowedTools[0];
         const accessToken = await requireAccessToken(context);
 
-        const mcpInResponse = await fetch(
+        const mcpInResponse = await fetchWithTimeout(
           `${context.baseURL}/ai-workflow/mcp-server-node/invoke-tool`,
           {
             method: "POST",
@@ -279,7 +318,8 @@ async function executeToolNode(
               tool_name: allowedTool,
               headers: nodeData.headers,
             }),
-          }
+          },
+          context.fetchTimeoutMs ?? DEFAULT_FETCH_TIMEOUT_MS
         );
 
         if (!mcpInResponse.ok) {
@@ -385,12 +425,21 @@ async function executeLlmNode(
     const allMessages: any[] = [];
     let parsedOutput: any = null; // JSON 모드일 때 parsed 결과 저장
 
+    const maxToolCallDepth =
+      context.maxToolCallDepth ?? DEFAULT_MAX_TOOL_CALL_DEPTH;
+
     // 재귀적으로 LLM 호출 (tool_call_required 처리) - 스트리밍
     const processStream = async (
       requestBody: CompletionRequest,
       checkpointId: string | null = null,
-      baseURL: string
+      baseURL: string,
+      depth = 0
     ): Promise<void> => {
+      if (depth > maxToolCallDepth) {
+        throw new Error(
+          `LLM tool-call 재귀 깊이가 한도(${maxToolCallDepth})를 초과했습니다`
+        );
+      }
       let response: Response;
 
       if (context.useStreamProxy) {
@@ -548,6 +597,9 @@ async function executeLlmNode(
                         "Custom/function tool code execution is disabled by context.disableCodeExecution."
                       );
                     }
+                    if (context.disableCodeExecution === undefined) {
+                      warnImplicitCodeExecutionOnce();
+                    }
                     if (context.executeCodeCallback) {
                       result = await context.executeCodeCallback(
                         toolCall.name,
@@ -572,7 +624,7 @@ async function executeLlmNode(
                     }
                   } else if (tool.type === "built-in") {
                     const accessToken = await requireAccessToken(context);
-                    const builtInResponse = await fetch(
+                    const builtInResponse = await fetchWithTimeout(
                       `${context.baseURL}/built-in-tool-node/${tool.id}/invoke`,
                       {
                         method: "POST",
@@ -581,7 +633,8 @@ async function executeLlmNode(
                           Authorization: `Bearer ${accessToken}`,
                         },
                         body: JSON.stringify({ args: toolCall.args }),
-                      }
+                      },
+                      context.fetchTimeoutMs ?? DEFAULT_FETCH_TIMEOUT_MS
                     );
 
                     if (!builtInResponse.ok) {
@@ -617,7 +670,8 @@ async function executeLlmNode(
                   messages: toolResults,
                 },
                 event.configurable.checkpoint_id,
-                context.baseURL || ""
+                context.baseURL || "",
+                depth + 1
               );
               return; // 재귀 호출 후 종료
 
@@ -768,7 +822,7 @@ async function executeTransformerNode(
 
     // Auto-Transformer API 호출
     const accessToken = await requireAccessToken(context);
-    const response = await fetch(
+    const response = await fetchWithTimeout(
       `${context.baseURL}/ai-workflow/helper-node/auto-transformer`,
       {
         method: "POST",
@@ -786,7 +840,8 @@ async function executeTransformerNode(
           },
           targetInputType,
         }),
-      }
+      },
+      context.fetchTimeoutMs ?? DEFAULT_FETCH_TIMEOUT_MS
     );
 
     if (!response.ok) {
@@ -1034,7 +1089,7 @@ async function executeRAGNode(
     );
 
     const accessToken = await requireAccessToken(context);
-    const response = await fetch(
+    const response = await fetchWithTimeout(
       `${context.baseURL}/ai-workflow/rag-storage-node/${nodeData.storage_id}/query`,
       {
         method: "POST",
@@ -1043,7 +1098,8 @@ async function executeRAGNode(
           Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify(requestBody),
-      }
+      },
+      context.fetchTimeoutMs ?? DEFAULT_FETCH_TIMEOUT_MS
     );
 
     if (!response.ok) {

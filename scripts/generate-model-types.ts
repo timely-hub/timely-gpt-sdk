@@ -34,7 +34,11 @@ async function fetchModels(baseURL: string): Promise<string[]> {
 }
 
 function generateTypeDefinition(models: string[]): string {
-  const modelUnion = models.map((model) => `  | '${model}'`).join("\n");
+  // JSON.stringify로 감싸 인용부호/이스케이프를 안전하게 처리한다.
+  // 그대로 보간하면 모델명에 따옴표가 섞일 때 생성 파일에 코드가 주입될 수 있다.
+  const modelUnion = models
+    .map((model) => `  | ${JSON.stringify(model)}`)
+    .join("\n");
 
   return `// This file is auto-generated. Do not edit manually.
 
@@ -51,7 +55,7 @@ ${modelUnion};
  * List of all available models
  */
 export const AVAILABLE_MODELS: readonly ModelType[] = [
-${models.map((model) => `  '${model}',`).join("\n")}
+${models.map((model) => `  ${JSON.stringify(model)},`).join("\n")}
 ] as const;
 `;
 }

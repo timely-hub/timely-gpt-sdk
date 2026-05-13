@@ -52,6 +52,14 @@ export interface RunWorkflowOptions {
    * 신뢰할 수 없는 출처의 workflow를 실행할 때 활성화 권장.
    */
   disableCodeExecution?: WorkflowContextOptions["disableCodeExecution"];
+  /**
+   * LLM tool-call 재귀 깊이 한도. 기본값: 25.
+   */
+  maxToolCallDepth?: WorkflowContextOptions["maxToolCallDepth"];
+  /**
+   * 비스트리밍 fetch 타임아웃(ms). 기본값: 30000.
+   */
+  fetchTimeoutMs?: WorkflowContextOptions["fetchTimeoutMs"];
 }
 
 export interface WorkflowStartParams {
@@ -285,6 +293,8 @@ export class Workflow {
       baseURL: this.baseURL,
       getAccessToken: () => this.authManager.getAccessToken(),
       disableCodeExecution: options?.disableCodeExecution,
+      maxToolCallDepth: options?.maxToolCallDepth,
+      fetchTimeoutMs: options?.fetchTimeoutMs,
     });
 
     // Execute workflow
