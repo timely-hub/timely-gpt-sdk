@@ -9346,9 +9346,19 @@ interface WorkflowContextOptions {
     /**
      * true면 workflow의 custom/function tool 노드에 포함된 임의 코드(`function_body`) 실행을 차단한다.
      * 신뢰할 수 없는 출처의 workflow를 실행할 때 활성화 권장.
-     * 기본값: false (기존 동작 유지).
+     * 기본값: false (기존 동작 유지). 미지정 시 1회성 경고가 출력된다.
      */
     disableCodeExecution?: boolean;
+    /**
+     * LLM 노드의 tool-call 재귀 깊이 한도. 한도 초과 시 에러를 throw 한다.
+     * 비용 폭주/메모리 누적 방지용. 기본값: 25.
+     */
+    maxToolCallDepth?: number;
+    /**
+     * 워크플로우 내 비스트리밍 fetch 호출의 타임아웃(ms).
+     * LLM 스트리밍 응답에는 적용되지 않는다. 기본값: 30000.
+     */
+    fetchTimeoutMs?: number;
 }
 declare class WorkflowExecutionContext {
     private _state;
@@ -9358,6 +9368,8 @@ declare class WorkflowExecutionContext {
     getAccessToken?: () => Promise<string>;
     useStreamProxy?: boolean;
     disableCodeExecution?: boolean;
+    maxToolCallDepth?: number;
+    fetchTimeoutMs?: number;
     private _addExecutionLog?;
     constructor(options?: WorkflowContextOptions);
     onNodeResult(nodeId: string, nodeType: string, data: any, message?: string): void;
@@ -9448,6 +9460,14 @@ interface RunWorkflowOptions {
      * 신뢰할 수 없는 출처의 workflow를 실행할 때 활성화 권장.
      */
     disableCodeExecution?: WorkflowContextOptions["disableCodeExecution"];
+    /**
+     * LLM tool-call 재귀 깊이 한도. 기본값: 25.
+     */
+    maxToolCallDepth?: WorkflowContextOptions["maxToolCallDepth"];
+    /**
+     * 비스트리밍 fetch 타임아웃(ms). 기본값: 30000.
+     */
+    fetchTimeoutMs?: WorkflowContextOptions["fetchTimeoutMs"];
 }
 interface WorkflowStartParams {
     schema: Record<string, any> | null;

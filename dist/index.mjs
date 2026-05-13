@@ -326,6 +326,25 @@ function resolveInputBindings(inputBindings, nodeOutputs, allNodes, globalState)
 }
 
 // src/workflow/workflow-executor.ts
+var warnedAboutImplicitCodeExecution = false;
+function warnImplicitCodeExecutionOnce() {
+  if (warnedAboutImplicitCodeExecution) return;
+  warnedAboutImplicitCodeExecution = true;
+  console.warn(
+    "[timely-gpt-sdk] Custom/function tool code is being executed without an explicit `disableCodeExecution` setting. The workflow `function_body` runs with full Node/browser privileges. Pass `disableCodeExecution: true` for untrusted workflows, or `false` to acknowledge the trust model and silence this warning."
+  );
+}
+var DEFAULT_MAX_TOOL_CALL_DEPTH = 25;
+var DEFAULT_FETCH_TIMEOUT_MS = 3e4;
+async function fetchWithTimeout(input, init, timeoutMs) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
 function assertSafeMCPUrl(raw) {
   let url;
   try {
@@ -450,6 +469,9 @@ async function executeToolNode(node, context, allNodes) {
           "Custom/function tool code execution is disabled by context.disableCodeExecution. Enable it only when the workflow source is fully trusted."
         );
       }
+      if (context.disableCodeExecution === void 0) {
+        warnImplicitCodeExecutionOnce();
+      }
       const functionCode = nodeData.tool.function_body ?? "";
       const toolName = nodeData.tool.name || nodeData.tool.id || "unknown";
       if (context.executeCodeCallback) {
@@ -469,7 +491,7 @@ async function executeToolNode(node, context, allNodes) {
       }
     } else if (nodeData.type === "built-in") {
       const accessToken = await requireAccessToken(context);
-      const response = await fetch(
+      const response = await fetchWithTimeout(
         `${context.baseURL}/built-in-tool-node/${nodeData.tool.id}/invoke`,
         {
           method: "POST",
@@ -478,7 +500,8 @@ async function executeToolNode(node, context, allNodes) {
             Authorization: `Bearer ${accessToken}`
           },
           body: JSON.stringify({ args: inputs })
-        }
+        },
+        context.fetchTimeoutMs ?? DEFAULT_FETCH_TIMEOUT_MS
       );
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -499,7 +522,7 @@ async function executeToolNode(node, context, allNodes) {
         assertSafeMCPUrl(serverUrl);
         const allowedTool = nodeData.allowedTools[0];
         const accessToken = await requireAccessToken(context);
-        const mcpInResponse = await fetch(
+        const mcpInResponse = await fetchWithTimeout(
           `${context.baseURL}/ai-workflow/mcp-server-node/invoke-tool`,
           {
             method: "POST",
@@ -513,7 +536,8 @@ async function executeToolNode(node, context, allNodes) {
               tool_name: allowedTool,
               headers: nodeData.headers
             })
-          }
+          },
+          context.fetchTimeoutMs ?? DEFAULT_FETCH_TIMEOUT_MS
         );
         if (!mcpInResponse.ok) {
           result = JSON.stringify({
@@ -592,7 +616,13 @@ async function executeLlmNode(node, context, edges, allNodes) {
     const sessionId = `workflow-${spaceMemberId}-${node.id}${nodeLabel ? `-${nodeLabel.trim()}` : ""}`;
     const allMessages = [];
     let parsedOutput = null;
-    const processStream = async (requestBody, checkpointId = null, baseURL) => {
+    const maxToolCallDepth = context.maxToolCallDepth ?? DEFAULT_MAX_TOOL_CALL_DEPTH;
+    const processStream = async (requestBody, checkpointId = null, baseURL, depth = 0) => {
+      if (depth > maxToolCallDepth) {
+        throw new Error(
+          `LLM tool-call \uC7AC\uADC0 \uAE4A\uC774\uAC00 \uD55C\uB3C4(${maxToolCallDepth})\uB97C \uCD08\uACFC\uD588\uC2B5\uB2C8\uB2E4`
+        );
+      }
       let response;
       if (context.useStreamProxy) {
         const formData = new FormData();
@@ -711,6 +741,9 @@ async function executeLlmNode(node, context, edges, allNodes) {
                         "Custom/function tool code execution is disabled by context.disableCodeExecution."
                       );
                     }
+                    if (context.disableCodeExecution === void 0) {
+                      warnImplicitCodeExecutionOnce();
+                    }
                     if (context.executeCodeCallback) {
                       result2 = await context.executeCodeCallback(
                         toolCall.name,
@@ -731,7 +764,7 @@ async function executeLlmNode(node, context, edges, allNodes) {
                     }
                   } else if (tool.type === "built-in") {
                     const accessToken = await requireAccessToken(context);
-                    const builtInResponse = await fetch(
+                    const builtInResponse = await fetchWithTimeout(
                       `${context.baseURL}/built-in-tool-node/${tool.id}/invoke`,
                       {
                         method: "POST",
@@ -740,7 +773,8 @@ async function executeLlmNode(node, context, edges, allNodes) {
                           Authorization: `Bearer ${accessToken}`
                         },
                         body: JSON.stringify({ args: toolCall.args })
-                      }
+                      },
+                      context.fetchTimeoutMs ?? DEFAULT_FETCH_TIMEOUT_MS
                     );
                     if (!builtInResponse.ok) {
                       result2 = JSON.stringify({
@@ -772,7 +806,8 @@ async function executeLlmNode(node, context, edges, allNodes) {
                   messages: toolResults
                 },
                 event.configurable.checkpoint_id,
-                context.baseURL || ""
+                context.baseURL || "",
+                depth + 1
               );
               return;
             // 재귀 호출 후 종료
@@ -877,7 +912,7 @@ async function executeTransformerNode(node, context, allNodes, edges) {
     }
     const targetInputType = extractInputSchema(targetNode);
     const accessToken = await requireAccessToken(context);
-    const response = await fetch(
+    const response = await fetchWithTimeout(
       `${context.baseURL}/ai-workflow/helper-node/auto-transformer`,
       {
         method: "POST",
@@ -894,7 +929,8 @@ async function executeTransformerNode(node, context, allNodes, edges) {
           },
           targetInputType
         })
-      }
+      },
+      context.fetchTimeoutMs ?? DEFAULT_FETCH_TIMEOUT_MS
     );
     if (!response.ok) {
       throw new Error(`Auto-Transformer API \uC2E4\uD589 \uC2E4\uD328: ${response.statusText}`);
@@ -1057,7 +1093,7 @@ async function executeRAGNode(node, context, edges, allNodes) {
       "RAG \uB178\uB4DC \uAC80\uC0C9 \uC2DC\uC791"
     );
     const accessToken = await requireAccessToken(context);
-    const response = await fetch(
+    const response = await fetchWithTimeout(
       `${context.baseURL}/ai-workflow/rag-storage-node/${nodeData.storage_id}/query`,
       {
         method: "POST",
@@ -1066,7 +1102,8 @@ async function executeRAGNode(node, context, edges, allNodes) {
           Authorization: `Bearer ${accessToken}`
         },
         body: JSON.stringify(requestBody)
-      }
+      },
+      context.fetchTimeoutMs ?? DEFAULT_FETCH_TIMEOUT_MS
     );
     if (!response.ok) {
       throw new Error(`RAG \uAC80\uC0C9 \uC2E4\uD328: ${response.statusText}`);
@@ -1588,6 +1625,8 @@ var WorkflowExecutionContext = class {
     this.getAccessToken = options?.getAccessToken;
     this.useStreamProxy = options?.useStreamProxy;
     this.disableCodeExecution = options?.disableCodeExecution;
+    this.maxToolCallDepth = options?.maxToolCallDepth;
+    this.fetchTimeoutMs = options?.fetchTimeoutMs;
     this._addExecutionLog = options?.addExecutionLog;
   }
   // onNodeResult를 호출하면 자동으로 addExecutionLog도 호출
@@ -1789,7 +1828,9 @@ var Workflow = class {
       executeCodeCallback: options?.executeCodeCallback,
       baseURL: this.baseURL,
       getAccessToken: () => this.authManager.getAccessToken(),
-      disableCodeExecution: options?.disableCodeExecution
+      disableCodeExecution: options?.disableCodeExecution,
+      maxToolCallDepth: options?.maxToolCallDepth,
+      fetchTimeoutMs: options?.fetchTimeoutMs
     });
     const result = await executeWorkflow(
       workflowData.nodes,
