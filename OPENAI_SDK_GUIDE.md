@@ -109,10 +109,14 @@ const client = new OpenAI({
 curl https://hello.timelygpt.co.kr/api/v2/chat/bridge/info/models
 ```
 
-아래는 2026-08-11 기준 목록입니다.
+아래는 2026-09-09 기준 목록입니다.
 
 ```typescript
 [
+  // OpenAI
+  "openai/gpt-5.6-sol",
+  "openai/gpt-5.6-terra",
+  "openai/gpt-5.6-luna",
   "openai/gpt-5.5",
   "openai/gpt-5.3-codex",
   "openai/gpt-5.1-codex-mini",
@@ -121,12 +125,18 @@ curl https://hello.timelygpt.co.kr/api/v2/chat/bridge/info/models
   "openai/gpt-4.1-mini",
   "openai/gpt-4o-mini",
   "openai/gpt-5-image-mini",
+  // Anthropic
+  "anthropic/claude-sonnet-5",
   "anthropic/claude-opus-4.7",
   "anthropic/claude-sonnet-4.6",
   "anthropic/claude-haiku-4.5",
+  // Google
+  "google/gemini-3.8-flash",
+  "google/gemini-3.7-flash",
   "google/gemini-3-flash-preview",
   "google/gemini-2.5-flash-lite",
   "google/gemini-2.5-flash-image",
+  // xAI
   "x-ai/grok-4.3",
 ];
 // 일부 모델은 `openai/gpt-5.5:batch` 처럼 `:batch` 접미사 변형도 허용됩니다.
@@ -139,11 +149,10 @@ curl https://hello.timelygpt.co.kr/api/v2/chat/bridge/info/models
 ### 종료된 모델 주의
 
 OpenAI 가 **2026-08-10 자로 `gpt-5.2-chat-latest` · `gpt-5.3-chat-latest` 스냅샷을 API 에서 제거**했습니다
-(2026-05-08 사전 공지, 공식 대체 모델 `gpt-5.6-sol`). 이 이름들은 이제 어디서도 동작하지 않습니다.
+(공식 대체 모델 `gpt-5.6-sol`). 이 이름들은 이제 어디서도 동작하지 않습니다.
 
-종료된 이름이 들어오면 Timely 가 대체 모델로 자동 치환하지만, **치환 결과가 이 브리지의 허용 목록에
-들어 있다는 보장은 없습니다** — `gpt-5.6-sol` 이 현재 그렇습니다. 자동 치환에 기대지 말고 위 목록에서
-직접 고르세요.
+종료된 이름이 들어오면 Timely 가 대체 모델로 자동 치환하지만, 예기치 않은 동작을 방지하기 위해 위 목록에서
+직접 최신 명시적 모델명을 지정하여 사용하는 것을 권장합니다.
 
 이름이 비슷한 `openai/gpt-5.3-codex` 는 **종료 대상이 아닌 별개 모델**이며 정상 사용 가능합니다.
 
