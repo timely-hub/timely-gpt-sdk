@@ -109,7 +109,7 @@ const client = new OpenAI({
 curl https://hello.timelygpt.co.kr/api/v2/chat/bridge/info/models
 ```
 
-아래는 2026-09-09 기준 목록입니다.
+아래는 2026-11-04 기준 목록입니다.
 
 ```typescript
 [
@@ -138,6 +138,9 @@ curl https://hello.timelygpt.co.kr/api/v2/chat/bridge/info/models
   "google/gemini-2.5-flash-image",
   // xAI
   "x-ai/grok-4.3",
+  // Upstage
+  "upstage/solar-pro4",
+  "upstage/solar-mini4",
 ];
 // 일부 모델은 `openai/gpt-5.5:batch` 처럼 `:batch` 접미사 변형도 허용됩니다.
 // cursor 에디터에는 openai 모델이 사용 불가. (openrouter 공급자 버그)
