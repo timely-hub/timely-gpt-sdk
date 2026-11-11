@@ -1980,7 +1980,7 @@ var TimelyGPTClient = class {
    *
    * @param options - 클라이언트 설정 (선택사항)
    * @param options.apiKey - Timely GPT API 키 (환경변수 TIMELY_API_KEY 사용 가능)
-   * @param options.baseURL - API 베이스 URL (환경변수 TIMELY_BASE_URL 또는 기본값: 'https://hello.timelygpt.co.kr/api/v2/chat')
+   * @param options.baseURL - API 베이스 URL (환경변수 TIMELY_BASE_URL 또는 기본값: 'https://hello.timelyai.io/api/v2/chat')
    *
    * @throws {Error} apiKey가 제공되지 않고 환경변수도 없는 경우
    *
@@ -1992,13 +1992,13 @@ var TimelyGPTClient = class {
    * // 직접 지정
    * const client = new TimelyGPTClient({
    *   apiKey: 'sdk_live_your_api_key_here',
-   *   baseURL: 'https://hello.timelygpt.co.kr/api/v2/chat',
+   *   baseURL: 'https://hello.timelyai.io/api/v2/chat',
    * });
    * ```
    */
   constructor(options = {}) {
     const apiKey = options.apiKey || (typeof process !== "undefined" ? process.env.TIMELY_API_KEY : void 0);
-    const baseURL = options.baseURL || (typeof process !== "undefined" ? process.env.TIMELY_BASE_URL : void 0) || "https://hello.timelygpt.co.kr/api/v2/chat";
+    const baseURL = options.baseURL || (typeof process !== "undefined" ? process.env.TIMELY_BASE_URL : void 0) || "https://hello.timelyai.io/api/v2/chat";
     if (!apiKey) {
       throw new Error(
         "API key is required. Provide it via options.apiKey or TIMELY_API_KEY environment variable."

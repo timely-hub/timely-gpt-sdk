@@ -62,7 +62,7 @@ ${models.map((model) => `  ${JSON.stringify(model)},`).join("\n")}
 
 async function main() {
   const baseURL =
-    process.env.TIMELY_BASE_URL || "https://hello.timelygpt.co.kr/api/v2/chat";
+    process.env.TIMELY_BASE_URL || "https://hello.timelyai.io/api/v2/chat";
 
   try {
     console.log("🔄 Fetching available models...");
