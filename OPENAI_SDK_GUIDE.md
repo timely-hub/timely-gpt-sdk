@@ -38,33 +38,53 @@ OpenAI SDK 클라이언트를 생성할 때 `baseURL`과 `apiKey`만 변경하�
 import OpenAI from "openai";
 
 const client = new OpenAI({
-  baseURL: "https://hello.timelygpt.co.kr/api/v2/chat/bridge/openai",
+  baseURL: "https://hello.timelyai.io/api/v2/chat/bridge/openai",
   apiKey: "your-timely-api-key", // Timely AI API 키
 });
 ```
 
 > ⚠️ **`baseURL` 을 바꾸지 않으면 키가 OpenAI 공식 서버로 전송되어 거절됩니다.**
 > `Incorrect API key provided: tgpt_sk_...` 라는 에러가 뜨면 이 설정이 빠진 것입니다.
-> 발급받은 `tgpt_sk_` 키는 아래 호스트에서만 유효합니다.
+> 발급받은 `tgpt_sk_` 키는 **키를 발급한 환경의 호스트에서만** 유효합니다 — 아래 [사용 가능한 호스트](#사용-가능한-호스트) 참고.
 
 ### 사용 가능한 호스트
 
-| 호스트 | 사용 |
+> ✅ **가장 확실한 방법: 키를 발급한 화면(스페이스 설정 › 연동 키 관리)의 「OpenAI 호환 주소(baseURL)」를 그대로 복사해 쓰세요.**
+> 그 화면은 지금 쓰는 환경에 맞는 주소를 보여줍니다. 이 문서의 예시 주소는 기본 환경 기준입니다.
+
+타임리 AI 는 환경마다 서버와 데이터베이스가 따로 있습니다. **키는 발급한 환경에만 저장**되므로,
+다른 환경의 호스트로 보내면 키가 맞아도 `유효하지 않은 API 키입니다` 로 거절됩니다.
+
+| 환경 | baseURL |
 | --- | --- |
-| `https://hello.timelygpt.co.kr/api/v2/chat/bridge/openai` | ✅ |
-| `https://hello.timelyai.io/api/v2/chat/bridge/openai` | ✅ (동일 응답) |
+| 기본 (`timelyai.io`) | `https://hello.timelyai.io/api/v2/chat/bridge/openai` |
+| `timelyai.co.kr` 환경 | `https://hello.timelyai.co.kr/api/v2/chat/bridge/openai` |
+| `timely.ai.kr` 환경 | `https://hello.timely.ai.kr/api/v2/chat/bridge/openai` |
+
+위 표에 없는 전용 환경을 쓰고 있다면 연동 키 관리 화면에 표시된 주소를 사용하세요.
+
+| 이런 주소는 | 사용 |
+| --- | --- |
 | 스페이스 접속 주소 (`ai.example.ac.kr` 등) | ❌ API 경로가 열려 있지 않음 |
+| 다른 환경의 호스트 | ❌ 키가 그 환경에 없음 |
 | 그 외 도메인 | ❌ |
 
 **스페이스에 평소 접속하는 주소로는 API 를 호출할 수 없습니다.** 그 주소에는 웹 화면만
-연결되어 있습니다. 두 호스트 모두 공개 인터넷이므로 교내망·VPN 없이 외부에서 바로 됩니다.
+연결되어 있습니다. 위 호스트는 모두 공개 인터넷이므로 교내망·VPN 없이 외부에서 바로 됩니다.
+
+> 💡 baseURL 은 SDK 에 넣는 **접두 주소**입니다. 브라우저 주소창에 그대로 열거나 키 없이 호출하면
+> `Missing Authorization header` 가 나오는데, 이는 고장이 아니라 정상 응답입니다.
+> 실제 호출은 SDK 가 뒤에 `/chat/completions` 등을 붙여 보냅니다.
 
 ### 연결 확인
 
 설정을 바꾼 뒤 아래 명령으로 먼저 확인하면 원인을 빠르게 좁힐 수 있습니다.
+쓰는 baseURL 의 끝 `openai` 를 `info/models` 로 바꾼 주소입니다(인증 불필요).
 
 ```bash
-curl https://hello.timelygpt.co.kr/api/v2/chat/bridge/info/models
+curl https://hello.timelyai.io/api/v2/chat/bridge/info/models
+# timelyai.co.kr 환경이면
+curl https://hello.timelyai.co.kr/api/v2/chat/bridge/info/models
 ```
 
 JSON 목록이 나오면 정상입니다. HTML 이 돌아오면 주소가 잘못된 것입니다 —
@@ -78,8 +98,8 @@ JSON 목록이 나오면 정상입니다. HTML 이 돌아오면 주소가 잘못
 | 오류 메시지 | 거절한 곳 | 원인 |
 | --- | --- | --- |
 | `Incorrect API key provided: tgpt_sk_...`<br>(`platform.openai.com` 안내가 따라붙음) | OpenAI | **baseURL 이 적용되지 않음.** 키는 정상일 가능성이 높다 |
-| `유효하지 않은 API 키입니다` (한글) | Timely | baseURL 은 정상. 키가 틀렸거나 이미 무효 — **재발급하면 기존 키는 비활성화**되므로 옛 키가 남아 있는지 확인 |
-| `Missing Authorization header`<br>`Invalid Authorization header format` | Timely | baseURL 은 정상. 키가 요청에 실리지 않음(설정의 `apiKey` 항목 확인) |
+| `유효하지 않은 API 키입니다` (한글) | Timely | 키가 틀렸거나 이미 무효 — **재발급하면 기존 키는 비활성화**되므로 옛 키가 남아 있는지 확인. 또는 **다른 환경의 호스트로 보냄** — 키를 발급한 화면의 baseURL 과 같은지 확인 |
+| `Missing Authorization header`<br>`Invalid Authorization header format` | Timely | baseURL 은 정상. 키가 요청에 실리지 않음(설정의 `apiKey` 항목 확인). baseURL 을 브라우저로 열었을 때도 이 메시지가 나온다 |
 
 가장 흔한 것은 첫 번째 줄입니다. `platform.openai.com` 이라는 문구가 보이면
 키 문제가 아니라 **주소 문제**이므로, [사용 가능한 호스트](#사용-가능한-호스트)를 다시 확인하세요.
@@ -89,7 +109,7 @@ JSON 목록이 나오면 정상입니다. HTML 이 돌아오면 주소가 잘못
 ```bash
 # .env 파일
 TIMELYGPT_API_KEY=your-timely-api-key
-OPENAI_BASE_URL=https://hello.timelygpt.co.kr/api/v2/chat/bridge/openai
+OPENAI_BASE_URL=https://hello.timelyai.io/api/v2/chat/bridge/openai
 ```
 
 ```typescript
@@ -104,9 +124,10 @@ const client = new OpenAI({
 ## 사용 가능한 모델
 
 허용 모델은 수시로 바뀌므로 **실시간 목록을 API 로 확인**하는 것을 권장합니다. 인증 없이 조회할 수 있습니다.
+(다른 환경이면 [연결 확인](#연결-확인)처럼 자기 호스트로 조회하세요.)
 
 ```bash
-curl https://hello.timelygpt.co.kr/api/v2/chat/bridge/info/models
+curl https://hello.timelyai.io/api/v2/chat/bridge/info/models
 ```
 
 아래는 2026-11-04 기준 목록입니다.
@@ -319,7 +340,7 @@ OpenCode 처럼 OpenAI 호환 공급자를 직접 등록할 수 있는 도구는
       "npm": "@ai-sdk/openai-compatible",
       "name": "Timely AI",
       "options": {
-        "baseURL": "https://hello.timelygpt.co.kr/api/v2/chat/bridge/openai",
+        "baseURL": "https://hello.timelyai.io/api/v2/chat/bridge/openai",
         "apiKey": "{env:TIMELYGPT_API_KEY}"
       },
       "models": {
@@ -366,7 +387,7 @@ const chat = new ChatOpenAI({
   model: "openai/gpt-4.1-mini",
   apiKey: "your-timely-api-key",
   configuration: {
-    baseURL: "https://hello.timelygpt.co.kr/api/v2/chat/bridge/openai",
+    baseURL: "https://hello.timelyai.io/api/v2/chat/bridge/openai",
   },
 });
 
