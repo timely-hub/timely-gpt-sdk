@@ -8,7 +8,7 @@ Timely GPT API를 위한 공식 TypeScript/JavaScript SDK입니다. OpenAI SDK�
 
 ## 문서
 
-- 📚 **REST API 문서**: [https://hello.timelygpt.co.kr/api/v2/chat/sdk](https://hello.timelygpt.co.kr/api/v2/chat/sdk)
+- 📚 **REST API 문서**: [https://hello.timelyai.io/api/v2/chat/sdk](https://hello.timelyai.io/api/v2/chat/sdk)
 - 🔌 **OpenAI SDK 사용 가이드**: [OPENAI_SDK_GUIDE.md](./OPENAI_SDK_GUIDE.md)
 - 📦 **GitHub 저장소**: [https://github.com/timely-hub/timely-gpt-sdk](https://github.com/timely-hub/timely-gpt-sdk)
 - 🐛 **Issue 트래킹**: [https://github.com/timely-hub/timely-gpt-sdk/issues](https://github.com/timely-hub/timely-gpt-sdk/issues)
@@ -96,7 +96,7 @@ const client = new TimelyGPTClient();
 // 또는 직접 지정
 const client = new TimelyGPTClient({
   apiKey: 'sdk_live_your_api_key_here',
-  baseURL: 'https://hello.timelygpt.co.kr/api/v2/chat',
+  baseURL: 'https://hello.timelyai.io/api/v2/chat',
 });
 
 // 세션 ID는 사용자별로 고유하게 관리 (예: 사용자 ID, UUID 등)
@@ -169,13 +169,13 @@ new TimelyGPTClient(options?: TimelyGPTClientOptions)
 
 **옵션 (모두 선택사항):**
 - `apiKey`: SDK API 키 (환경변수 `TIMELY_API_KEY` 사용 가능)
-- `baseURL`: API 베이스 URL (환경변수 `TIMELY_BASE_URL` 또는 기본값: `https://hello.timelygpt.co.kr/api/v2/chat`)
+- `baseURL`: API 베이스 URL (환경변수 `TIMELY_BASE_URL` 또는 기본값: `https://hello.timelyai.io/api/v2/chat`)
 
 **환경변수를 사용하는 경우:**
 ```typescript
 // .env 파일 또는 환경변수 설정
 // TIMELY_API_KEY=sdk_live_your_api_key_here
-// TIMELY_BASE_URL=https://hello.timelygpt.co.kr/api/v2/chat
+// TIMELY_BASE_URL=https://hello.timelyai.io/api/v2/chat
 
 const client = new TimelyGPTClient(); // 모든 값이 환경변수에서 로드됨
 ```
@@ -618,7 +618,7 @@ npm run generate-models
 
 ```bash
 # 모델 타입 생성용
-export TIMELY_BASE_URL=https://hello.timelygpt.co.kr/api/v2/chat
+export TIMELY_BASE_URL=https://hello.timelyai.io/api/v2/chat
 
 # 런타임용
 export TIMELY_API_KEY=sdk_live_your_api_key_here
@@ -646,7 +646,7 @@ MIT
 
 문제 및 질문:
 - 🐛 **GitHub Issues**: [https://github.com/timely-hub/timely-gpt-sdk/issues](https://github.com/timely-hub/timely-gpt-sdk/issues)
-- 📚 **REST API 문서**: [https://hello.timelygpt.co.kr/api/v2/chat/sdk](https://hello.timelygpt.co.kr/api/v2/chat/sdk)
+- 📚 **REST API 문서**: [https://hello.timelyai.io/api/v2/chat/sdk](https://hello.timelyai.io/api/v2/chat/sdk)
 - 📖 **개발 문서**: [SDK_API_SPEC.md](./SDK_API_SPEC.md)
 
 ---

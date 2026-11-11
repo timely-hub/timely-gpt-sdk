@@ -371,7 +371,7 @@ export type StreamEvent =
 export interface TimelyGPTClientOptions {
   /** Timely GPT API 키 (환경변수 TIMELY_API_KEY 사용 가능) */
   apiKey?: string;
-  /** API 베이스 URL (환경변수 TIMELY_BASE_URL 또는 기본값: 'https://hello.timelygpt.co.kr/api/v2/chat') */
+  /** API 베이스 URL (환경변수 TIMELY_BASE_URL 또는 기본값: 'https://hello.timelyai.io/api/v2/chat') */
   baseURL?: string;
 }
 

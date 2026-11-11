@@ -9162,7 +9162,7 @@ type StreamEvent = {
 interface TimelyGPTClientOptions {
     /** Timely GPT API 키 (환경변수 TIMELY_API_KEY 사용 가능) */
     apiKey?: string;
-    /** API 베이스 URL (환경변수 TIMELY_BASE_URL 또는 기본값: 'https://hello.timelygpt.co.kr/api/v2/chat') */
+    /** API 베이스 URL (환경변수 TIMELY_BASE_URL 또는 기본값: 'https://hello.timelyai.io/api/v2/chat') */
     baseURL?: string;
 }
 /**
@@ -9583,7 +9583,7 @@ declare function executeWorkflow<TNodeType extends AIWorkflowNodeType = AIWorkfl
  *
  * const client = new TimelyGPTClient({
  *   apiKey: 'sdk_live_your_api_key_here',
- *   baseURL: 'https://hello.timelygpt.co.kr/api/v2/chat',
+ *   baseURL: 'https://hello.timelyai.io/api/v2/chat',
  * });
  *
  * // 비스트리밍 요청
@@ -9619,7 +9619,7 @@ declare class TimelyGPTClient {
      *
      * @param options - 클라이언트 설정 (선택사항)
      * @param options.apiKey - Timely GPT API 키 (환경변수 TIMELY_API_KEY 사용 가능)
-     * @param options.baseURL - API 베이스 URL (환경변수 TIMELY_BASE_URL 또는 기본값: 'https://hello.timelygpt.co.kr/api/v2/chat')
+     * @param options.baseURL - API 베이스 URL (환경변수 TIMELY_BASE_URL 또는 기본값: 'https://hello.timelyai.io/api/v2/chat')
      *
      * @throws {Error} apiKey가 제공되지 않고 환경변수도 없는 경우
      *
@@ -9631,7 +9631,7 @@ declare class TimelyGPTClient {
      * // 직접 지정
      * const client = new TimelyGPTClient({
      *   apiKey: 'sdk_live_your_api_key_here',
-     *   baseURL: 'https://hello.timelygpt.co.kr/api/v2/chat',
+     *   baseURL: 'https://hello.timelyai.io/api/v2/chat',
      * });
      * ```
      */
