@@ -38,7 +38,7 @@ OpenAI SDK 클라이언트를 생성할 때 `baseURL`과 `apiKey`만 변경하�
 import OpenAI from "openai";
 
 const client = new OpenAI({
-  baseURL: "https://hello.timelygpt.co.kr/api/v2/chat/bridge/openai",
+  baseURL: "https://hello.timelyai.io/api/v2/chat/bridge/openai",
   apiKey: "your-timely-api-key", // Timely AI API 키
 });
 ```
@@ -57,7 +57,7 @@ const client = new OpenAI({
 
 | 환경 | baseURL |
 | --- | --- |
-| 기본 (`timelyai.io`) | `https://hello.timelyai.io/api/v2/chat/bridge/openai`<br>`https://hello.timelygpt.co.kr/api/v2/chat/bridge/openai` (동일 응답) |
+| 기본 (`timelyai.io`) | `https://hello.timelyai.io/api/v2/chat/bridge/openai` |
 | `timelyai.co.kr` 환경 | `https://hello.timelyai.co.kr/api/v2/chat/bridge/openai` |
 | `timely.ai.kr` 환경 | `https://hello.timely.ai.kr/api/v2/chat/bridge/openai` |
 
@@ -82,7 +82,7 @@ const client = new OpenAI({
 쓰는 baseURL 의 끝 `openai` 를 `info/models` 로 바꾼 주소입니다(인증 불필요).
 
 ```bash
-curl https://hello.timelygpt.co.kr/api/v2/chat/bridge/info/models
+curl https://hello.timelyai.io/api/v2/chat/bridge/info/models
 # timelyai.co.kr 환경이면
 curl https://hello.timelyai.co.kr/api/v2/chat/bridge/info/models
 ```
@@ -109,7 +109,7 @@ JSON 목록이 나오면 정상입니다. HTML 이 돌아오면 주소가 잘못
 ```bash
 # .env 파일
 TIMELYGPT_API_KEY=your-timely-api-key
-OPENAI_BASE_URL=https://hello.timelygpt.co.kr/api/v2/chat/bridge/openai
+OPENAI_BASE_URL=https://hello.timelyai.io/api/v2/chat/bridge/openai
 ```
 
 ```typescript
@@ -127,7 +127,7 @@ const client = new OpenAI({
 (다른 환경이면 [연결 확인](#연결-확인)처럼 자기 호스트로 조회하세요.)
 
 ```bash
-curl https://hello.timelygpt.co.kr/api/v2/chat/bridge/info/models
+curl https://hello.timelyai.io/api/v2/chat/bridge/info/models
 ```
 
 아래는 2026-11-04 기준 목록입니다.
@@ -340,7 +340,7 @@ OpenCode 처럼 OpenAI 호환 공급자를 직접 등록할 수 있는 도구는
       "npm": "@ai-sdk/openai-compatible",
       "name": "Timely AI",
       "options": {
-        "baseURL": "https://hello.timelygpt.co.kr/api/v2/chat/bridge/openai",
+        "baseURL": "https://hello.timelyai.io/api/v2/chat/bridge/openai",
         "apiKey": "{env:TIMELYGPT_API_KEY}"
       },
       "models": {
@@ -387,7 +387,7 @@ const chat = new ChatOpenAI({
   model: "openai/gpt-4.1-mini",
   apiKey: "your-timely-api-key",
   configuration: {
-    baseURL: "https://hello.timelygpt.co.kr/api/v2/chat/bridge/openai",
+    baseURL: "https://hello.timelyai.io/api/v2/chat/bridge/openai",
   },
 });
 
