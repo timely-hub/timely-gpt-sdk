@@ -10,6 +10,7 @@ Timely GPT API를 위한 공식 TypeScript/JavaScript SDK입니다. OpenAI SDK�
 
 - 📚 **REST API 문서**: [https://hello.timelygpt.co.kr/api/v2/chat/sdk](https://hello.timelygpt.co.kr/api/v2/chat/sdk)
 - 🔌 **OpenAI SDK 사용 가이드**: [OPENAI_SDK_GUIDE.md](./OPENAI_SDK_GUIDE.md)
+- ⚡ **Timely API 사용 가이드 (OpenAI·Claude·Solar·Gemini 공식 API 형식)**: [DIRECT_API_GUIDE.md](./DIRECT_API_GUIDE.md)
 - 📦 **GitHub 저장소**: [https://github.com/timely-hub/timely-gpt-sdk](https://github.com/timely-hub/timely-gpt-sdk)
 - 🐛 **Issue 트래킹**: [https://github.com/timely-hub/timely-gpt-sdk/issues](https://github.com/timely-hub/timely-gpt-sdk/issues)
 

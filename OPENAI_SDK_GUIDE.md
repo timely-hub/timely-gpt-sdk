@@ -3,6 +3,13 @@
 OpenAI 호환모드는 [OpenRouter](https://openrouter.ai/)에서 제공하는 다양한 모델을 Timely GPT의 크레딧으로 사용할 수 있습니다.
 기존 [OpenAI SDK](https://platform.openai.com/docs/api-reference/introduction) 코드를 그대로 사용하면서 baseURL만 변경하여 다양한 AI 모델을 이용할 수 있습니다.
 
+> OpenAI·Claude·Solar·Gemini 모델을 각 공급사의 공식 API 형식 그대로 호출하려면 **[Timely API 사용 가이드](./DIRECT_API_GUIDE.md)** 를 참고하세요.
+> 주소와 모델명이 이 문서와 다릅니다.
+
+> ⚠️ **종료 예정 안내** — 이 문서의 OpenAI 호환 모드(`.../bridge/openai`)는 종료될 예정입니다.
+> 새로 연동할 때는 **[Timely API 사용 가이드](./DIRECT_API_GUIDE.md)** 의 주소를 사용하세요.
+> 종료 이후의 동작과 옮기는 방법은 아래 [종료 안내](#종료-안내)를 참고하세요.
+
 ## 목차
 
 - [설치](#설치)
@@ -19,6 +26,7 @@ OpenAI 호환모드는 [OpenRouter](https://openrouter.ai/)에서 제공하는 �
 - [비용 및 크레딧](#비용-및-크레딧)
 - [코딩 에이전트 연동 (OpenCode)](#코딩-에이전트-연동-opencode)
 - [LangChain 사용](#langchain-사용)
+- [종료 안내](#종료-안내)
 
 ## 설치
 
@@ -382,3 +390,57 @@ OpenRouter의 모델 문서에서 각 모델의 사용방법을 확인 할 수 �
 _예시_:
 [Gemini 3 Flash Preview 모델 소개 페이지](https://openrouter.ai/google/gemini-3-flash-preview/api)
 에서 Quickstart -> 코드 탭의 `openai-typescript`
+
+## 종료 안내
+
+OpenAI 호환 모드(`.../bridge/openai`)는 종료될 예정이며, 종료 시점은 별도로 공지합니다.
+
+### 종료 이후의 동작
+
+이 주소로 들어온 모든 요청은 **410** 으로 응답합니다. 모델과 경로에 관계없이 동일하며, 크레딧은 차감되지 않습니다.
+
+```json
+{
+  "error": {
+    "message": "이 주소(OpenAI 호환 브리지)는 종료되었습니다. Timely API 로 옮겨 주세요: ...",
+    "type": "invalid_request_error",
+    "param": null,
+    "code": "endpoint_retired"
+  }
+}
+```
+
+### 옮기는 방법
+
+종료 전에 [Timely API 사용 가이드](./DIRECT_API_GUIDE.md)의 주소로 옮기면 영향이 없습니다.
+
+| 지금 쓰는 모델 | 옮길 곳 | 바꿀 것 |
+| --- | --- | --- |
+| `openai/…` | `.../direct/openai/v1` | `baseURL`, 모델명에서 `openai/` 접두 제거 (`openai/gpt-5.5` → `gpt-5.5`) |
+| `upstage/…` | `.../direct/upstage/v1` | `baseURL`, 모델명에서 `upstage/` 접두 제거 (`upstage/solar-pro4` → `solar-pro4`) |
+| `anthropic/…` | `.../direct/anthropic` | **Anthropic SDK 로 교체**, 모델명 변경 (`anthropic/claude-sonnet-4.6` → `claude-sonnet-4-6`) |
+| `google/…` (Gemini) | `.../direct/google` | **Google Gen AI SDK 로 교체**, 모델명에서 `google/` 접두 제거 (`google/gemini-3-flash-preview` → `gemini-3-flash-preview`). 이미지 생성 모델은 제공하지 않습니다 |
+| Grok 등 그 밖의 모델 | 없음 | Timely API 에서 제공하지 않습니다 |
+
+OpenAI·Solar 모델은 요청과 응답 형식이 그대로라 주소와 모델명만 바꾸면 됩니다.
+
+Claude 모델은 **OpenAI Chat Completions 형식이 아니라 Anthropic Messages API 형식**으로 호출합니다.
+OpenAI SDK 로 Claude 를 호출하던 코드는 Anthropic SDK 로 옮겨야 하며, 요청과 응답이 다음과 같이 다릅니다.
+Gemini 모델도 같은 이유로 Google Gen AI SDK(`generateContent` 형식)로 옮겨야 합니다. 형식은 [Timely API 사용 가이드](./DIRECT_API_GUIDE.md#gemini-모델-사용)를 참고하세요.
+
+| 항목 | 지금 (OpenAI 형식) | 옮긴 뒤 (Anthropic Messages 형식) |
+| --- | --- | --- |
+| `max_tokens` | 선택 | **필수** |
+| 시스템 프롬프트 | `messages` 안의 `role: "system"` | 최상위 `system` 필드 |
+| 도구 정의 | `tools[].function.{name, parameters}` | `tools[].{name, input_schema}` |
+| 응답 본문 | `choices[0].message.content` (문자열) | `content[]` (블록 배열, `content[0].text`) |
+| 종료 사유 | `choices[0].finish_reason` | `stop_reason` |
+| 사용량 | `usage.prompt_tokens`·`completion_tokens` | `usage.input_tokens`·`output_tokens` |
+| 스트리밍 | `chat.completion.chunk` 조각 + `[DONE]` | `message_start` … `message_stop` 이벤트 |
+| 오류 본문 | `{ "error": { "message", "type", "code" } }` | `{ "type": "error", "error": { "type", "message" } }` |
+
+### 함께 달라지는 점
+
+- `:batch` 같은 변형 접미사, `models` 대체 목록, `provider`·`reasoning`·`plugins` 등 OpenRouter 전용 파라미터는 Timely API 에서 쓸 수 없습니다.
+- 비용은 사용한 토큰 수 × 모델별 단가로 계산됩니다.
+- 모델 목록은 API 키로 조회하며, 내가 쓸 수 있는 모델만 표시됩니다.
