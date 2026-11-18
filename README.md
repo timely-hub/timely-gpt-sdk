@@ -2,15 +2,17 @@
 
 Timely GPT API를 위한 공식 TypeScript/JavaScript SDK입니다. OpenAI SDK와 유사한 직관적인 인터페이스로 스트리밍을 지원하는 AI 기반 애플리케이션을 구축할 수 있습니다.
 
-> **💡 OpenAI SDK 또는 LangChain을 직접 사용하시나요?**
-> OpenAI SDK나 LangChain을 직접 사용하여 다양한 AI 모델을 이용하려면 **[OpenAI SDK 사용 가이드](./OPENAI_SDK_GUIDE.md)** 를 참고하세요.
-> **주의**: OpenAI 호환 모드에서 사용 가능한 모델 목록과 모델명은 이 SDK와 다릅니다.
+> **💡 OpenAI·Anthropic·Google 공식 SDK나 LangChain을 직접 사용하시나요?**
+> 공식 SDK로 OpenAI·Claude·Solar·Gemini 모델을 이용하려면 **[Timely API 사용 가이드](./DIRECT_API_GUIDE.md)** 를 참고하세요.
+> **주의**: Timely API 에서 사용하는 주소와 모델명은 이 SDK와 다릅니다.
+>
+> ⚠️ 기존 [OpenAI 호환 모드](./OPENAI_SDK_GUIDE.md)(`.../bridge/openai`)는 사용이 중단될 예정입니다. 지금 이 주소를 쓰고 있다면 Timely API 로 옮겨 주세요.
 
 ## 문서
 
 - 📚 **REST API 문서**: [https://hello.timelygpt.co.kr/api/v2/chat/sdk](https://hello.timelygpt.co.kr/api/v2/chat/sdk)
-- 🔌 **OpenAI SDK 사용 가이드**: [OPENAI_SDK_GUIDE.md](./OPENAI_SDK_GUIDE.md)
 - ⚡ **Timely API 사용 가이드 (OpenAI·Claude·Solar·Gemini 공식 API 형식)**: [DIRECT_API_GUIDE.md](./DIRECT_API_GUIDE.md)
+- 🔌 **OpenAI 호환 모드 가이드 (사용 중단 예정)**: [OPENAI_SDK_GUIDE.md](./OPENAI_SDK_GUIDE.md)
 - 📦 **GitHub 저장소**: [https://github.com/timely-hub/timely-gpt-sdk](https://github.com/timely-hub/timely-gpt-sdk)
 - 🐛 **Issue 트래킹**: [https://github.com/timely-hub/timely-gpt-sdk/issues](https://github.com/timely-hub/timely-gpt-sdk/issues)
 
