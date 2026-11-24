@@ -6,13 +6,13 @@ Timely GPT API를 위한 공식 TypeScript/JavaScript SDK입니다. OpenAI SDK�
 > 공식 SDK로 OpenAI·Claude·Solar·Gemini 모델을 이용하려면 **[Timely API 사용 가이드](./DIRECT_API_GUIDE.md)** 를 참고하세요.
 > **주의**: Timely API 에서 사용하는 주소와 모델명은 이 SDK와 다릅니다.
 >
-> ⚠️ 기존 [OpenAI 호환 모드](./OPENAI_SDK_GUIDE.md)(`.../bridge/openai`)는 사용이 중단될 예정입니다. 지금 이 주소를 쓰고 있다면 Timely API 로 옮겨 주세요.
+> ⚠️ 기존 [OpenAI 호환 모드](./OPENAI_SDK_GUIDE.md)(`.../bridge/openai`)는 2026년 11월 18일에 종료되었습니다. 지금은 이 주소로 보낸 모든 요청이 410 으로 끝납니다. Timely API 로 옮겨 주세요.
 
 ## 문서
 
 - 📚 **REST API 문서**: [https://hello.timelygpt.co.kr/api/v2/chat/sdk](https://hello.timelygpt.co.kr/api/v2/chat/sdk)
 - ⚡ **Timely API 사용 가이드 (OpenAI·Claude·Solar·Gemini 공식 API 형식)**: [DIRECT_API_GUIDE.md](./DIRECT_API_GUIDE.md)
-- 🔌 **OpenAI 호환 모드 가이드 (사용 중단 예정)**: [OPENAI_SDK_GUIDE.md](./OPENAI_SDK_GUIDE.md)
+- 🔌 **OpenAI 호환 모드 가이드 (2026-11-18 종료, 옮기는 방법 참고용)**: [OPENAI_SDK_GUIDE.md](./OPENAI_SDK_GUIDE.md)
 - 📦 **GitHub 저장소**: [https://github.com/timely-hub/timely-gpt-sdk](https://github.com/timely-hub/timely-gpt-sdk)
 - 🐛 **Issue 트래킹**: [https://github.com/timely-hub/timely-gpt-sdk/issues](https://github.com/timely-hub/timely-gpt-sdk/issues)
 

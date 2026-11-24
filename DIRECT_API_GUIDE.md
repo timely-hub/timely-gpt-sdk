@@ -10,7 +10,7 @@ Timely API 는 발급받은 연동 키(`tgpt_sk_...`) 하나로 OpenAI, Claude, 
 | Solar (Upstage) | Upstage API (`chat/completions`, OpenAI 호환) | [OpenAI SDK](https://console.upstage.ai/docs/capabilities/chat) |
 | Gemini (Google) | Gemini API (`generateContent`) | [Google Gen AI SDK](https://ai.google.dev/gemini-api/docs) |
 
-> 기존 [OpenAI 호환 모드](./OPENAI_SDK_GUIDE.md)(`.../bridge/openai`)는 종료될 예정이며, 주소와 모델명이 다릅니다.
+> 기존 [OpenAI 호환 모드](./OPENAI_SDK_GUIDE.md)(`.../bridge/openai`)는 2026년 11월 18일에 종료되었으며, Timely API 와는 주소와 모델명이 다릅니다.
 > 차이는 [기존 OpenAI 호환 모드와의 차이](#기존-openai-호환-모드와의-차이)를 참고하세요.
 
 ## 목차
@@ -443,7 +443,7 @@ curl https://hello.timelyai.io/api/v2/chat/direct/google/v1beta/models \
 
 ## Rate Limit
 
-Rate Limit 은 **크레딧 잔액에 따라 동적으로 조정**되며, OpenAI·Claude·Solar·Gemini 경로와 기존 OpenAI 호환 모드가 **같은 한도를 함께 사용**합니다.
+Rate Limit 은 **크레딧 잔액에 따라 동적으로 조정**되며, OpenAI·Claude·Solar·Gemini 경로가 **같은 한도를 함께 사용**합니다.
 
 | 상태 | 크레딧 잔액 | 분당 요청 수 | 동시 실행 수 |
 | --- | --- | --- | --- |
