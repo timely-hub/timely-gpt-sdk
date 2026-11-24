@@ -6,9 +6,9 @@ OpenAI 호환모드는 [OpenRouter](https://openrouter.ai/)에서 제공하는 �
 > OpenAI·Claude·Solar·Gemini 모델을 각 공급사의 공식 API 형식 그대로 호출하려면 **[Timely API 사용 가이드](./DIRECT_API_GUIDE.md)** 를 참고하세요.
 > 주소와 모델명이 이 문서와 다릅니다.
 
-> ⚠️ **종료 예정 안내** — 이 문서의 OpenAI 호환 모드(`.../bridge/openai`)는 종료될 예정입니다.
-> 새로 연동할 때는 **[Timely API 사용 가이드](./DIRECT_API_GUIDE.md)** 의 주소를 사용하세요.
-> 종료 이후의 동작과 옮기는 방법은 아래 [종료 안내](#종료-안내)를 참고하세요.
+> ⚠️ **종료 안내** — 이 문서의 OpenAI 호환 모드(`.../bridge/openai`)는 **2026년 11월 18일에 종료**되었습니다.
+> 지금은 이 주소로 보낸 모든 요청이 410 으로 끝납니다. **[Timely API 사용 가이드](./DIRECT_API_GUIDE.md)** 의 주소를 사용하세요.
+> 이 문서는 옮길 때 참고하도록 남겨 둡니다. 옮기는 방법은 아래 [종료 안내](#종료-안내)를 참고하세요.
 
 ## 목차
 
@@ -393,7 +393,7 @@ _예시_:
 
 ## 종료 안내
 
-OpenAI 호환 모드(`.../bridge/openai`)는 종료될 예정이며, 종료 시점은 별도로 공지합니다.
+OpenAI 호환 모드(`.../bridge/openai`)는 2026년 11월 18일에 종료되었습니다.
 
 ### 종료 이후의 동작
 
@@ -412,7 +412,7 @@ OpenAI 호환 모드(`.../bridge/openai`)는 종료될 예정이며, 종료 시�
 
 ### 옮기는 방법
 
-종료 전에 [Timely API 사용 가이드](./DIRECT_API_GUIDE.md)의 주소로 옮기면 영향이 없습니다.
+[Timely API 사용 가이드](./DIRECT_API_GUIDE.md)의 주소로 옮기면 계속 이용할 수 있습니다.
 
 | 지금 쓰는 모델 | 옮길 곳 | 바꿀 것 |
 | --- | --- | --- |
