@@ -322,14 +322,14 @@ curl "https://hello.timelyai.io/api/v2/chat/direct/google/v1beta/models/gemini-3
 ## 사용 가능한 모델
 
 모델 목록은 각 공급사와 Timely AI 모델 카탈로그를 따르며, 변동될 수 있습니다.
-아래는 2026년 11월 11일 기준 목록입니다. 모델명은 **공급사 공식 이름**을 그대로 쓰고, `openai/`·`anthropic/`·`upstage/`·`google/` 같은 접두를 붙이지 않습니다.
+아래는 2026년 11월 27일 기준 목록입니다. 모델명은 **공급사 공식 이름**을 그대로 쓰고, `openai/`·`anthropic/`·`upstage/`·`google/` 같은 접두를 붙이지 않습니다.
 
 | 공급사 | 모델 |
 | --- | --- |
-| OpenAI (24종) | `gpt-6.1-sol`, `gpt-6.1-terra`, `gpt-6-sol`, `gpt-6-luna`, `gpt-6-astra`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-5.5`, `gpt-5.5-pro`, `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.4-nano`, `gpt-5.3-codex`, `gpt-5.2`, `gpt-5.1`, `gpt-5`, `gpt-5-mini`, `gpt-5-nano`, `gpt-4.1`, `gpt-4.1-mini`, `gpt-4o`, `gpt-4o-mini`, `o3` |
-| Claude (14종) | `claude-fable-5-2`, `claude-fable-5-1`, `claude-fable-5`, `claude-opus-5-5`, `claude-opus-5`, `claude-opus-4-8`, `claude-opus-4-7`, `claude-opus-4-6`, `claude-sonnet-5-5`, `claude-sonnet-5`, `claude-sonnet-4-6`, `claude-sonnet-4-5`, `claude-haiku-5-5`, `claude-haiku-4-5` |
+| OpenAI (23종) | `gpt-6.1-sol`, `gpt-6.1-terra`, `gpt-6-sol`, `gpt-6-astra`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-5.5`, `gpt-5.5-pro`, `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.4-nano`, `gpt-5.3-codex`, `gpt-5.2`, `gpt-5.1`, `gpt-5`, `gpt-5-mini`, `gpt-5-nano`, `gpt-4.1`, `gpt-4.1-mini`, `gpt-4o`, `gpt-4o-mini`, `o3` |
+| Claude (13종) | `claude-fable-5-2`, `claude-fable-5-1`, `claude-fable-5`, `claude-opus-5-5`, `claude-opus-5`, `claude-opus-4-8`, `claude-opus-4-7`, `claude-opus-4-6`, `claude-sonnet-5-5`, `claude-sonnet-5`, `claude-sonnet-4-6`, `claude-sonnet-4-5`, `claude-haiku-4-5` |
 | Solar (2종) | `solar-pro4`, `solar-mini4` |
-| Gemini (10종) | `gemini-4-argon`, `gemini-4-carbon`, `gemini-3.8-flash`, `gemini-3.7-flash`, `gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite`, `gemini-3.1-pro-preview`, `gemini-3.1-flash-lite`, `gemini-3-flash-preview` |
+| Gemini (9종) | `gemini-4-argon`, `gemini-4-carbon`, `gemini-3.8-flash`, `gemini-3.7-flash`, `gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite`, `gemini-3.1-pro-preview`, `gemini-3-flash-preview` |
 
 - `gpt-5.5-pro` 와 `gpt-5.3-codex` 는 Responses API(`/responses`)로만 호출할 수 있습니다. Chat Completions 로 호출하면 404 가 반환됩니다.
 - 각 주소에서는 그 공급사의 모델만 호출할 수 있습니다(예: OpenAI 주소에서 Solar 모델은 404).
